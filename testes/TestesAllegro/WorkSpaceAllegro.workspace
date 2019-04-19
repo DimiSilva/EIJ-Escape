@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_workspace_file>
+	<Workspace title="Workspace">
+		<Project filename="ProjetoPadraoAllegro/ProjetoPadraoAllegro.cbp" />
+		<Project filename="TestesComCamera/TestesComCamera.cbp" />
+		<Project filename="TestesComSprites/TestesComSprites.cbp" />
+		<Project filename="TestesComSave/TestesComSave.cbp" />
+	</Workspace>
+</CodeBlocks_workspace_file>
