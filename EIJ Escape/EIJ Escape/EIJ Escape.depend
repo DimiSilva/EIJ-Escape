@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1556818687 source:c:\users\dimi\desktop\eij-escape\eij escape\eij escape\main.c
+1556910601 source:c:\users\dimi\desktop\eij-escape\eij escape\eij escape\main.c
 	<allegro5/allegro.h>
 	<allegro5/allegro_image.h>
 	<allegro5/allegro_audio.h>
@@ -10,4 +10,5 @@
 	<allegro5/allegro_primitives.h>
 	<stdio.h>
 	<stdbool.h>
+	<string.h>
 
