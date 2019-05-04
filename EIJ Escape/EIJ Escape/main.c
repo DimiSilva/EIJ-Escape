@@ -28,13 +28,16 @@ ALLEGRO_BITMAP *spriteIlan = NULL;
 ALLEGRO_BITMAP *spriteLarissa = NULL;
 ALLEGRO_BITMAP *spriteYuka = NULL;
 ALLEGRO_BITMAP *icone = NULL;
+ALLEGRO_SAMPLE *chuvaPadrao = NULL;
+ALLEGRO_SAMPLE_ID idChuva;
 ALLEGRO_FONT *pixelFontPequena = NULL;
 ALLEGRO_FONT *pixelFont = NULL;
 ALLEGRO_FONT *pixelFontTitle = NULL;
 bool sair = false;
 bool trocarCena = false;
-int acao = 2;
-int acaoAnterior = 1;
+bool chuvaPadraoAtiva = false;
+int acao = 0;
+int acaoAnterior = 0;
 double tempoInicial = 0;
 //fim variaveis e ponteiros
 
@@ -44,7 +47,10 @@ void destroi();
 int Menu();
 int HallAnim();
 int Hall(int veioDeOnde);
-int BanheiroPrimeiroAndar(int veioDeOnde);
+int Cozinha();
+int BanheiroPrimeiroAndar();
+int Biblioteca(int veioDeOnde);
+int SalaDeJantar(int veioDeOnde);
 void iniciaRafa();
 void iniciaIlan();
 void iniciaLarissa();
@@ -149,6 +155,14 @@ void iniciaYuka(struct personagem *h){
 int main(){
     init();
     while(!sair){
+        if(acao>0&&!chuvaPadraoAtiva){
+            al_play_sample(chuvaPadrao,1,0.5,1,ALLEGRO_PLAYMODE_LOOP,&idChuva);
+            chuvaPadraoAtiva = true;
+        }
+        else if(acao == 0){
+            chuvaPadraoAtiva = false;
+            al_stop_sample(&idChuva);
+        }
         while(!al_event_queue_is_empty(filaDeEvento)){
             ALLEGRO_EVENT evento;
             al_wait_for_event(filaDeEvento, &evento);
@@ -168,16 +182,243 @@ int main(){
                 Hall(acaoAnterior);
             break;
             case 3:
+                Cozinha();
+            break;
+            case 4:
                 BanheiroPrimeiroAndar(acaoAnterior);
             break;
         }
         trocarCena = false;
     }
-
     destroi();
     return 1;
 }
-int BanheiroPrimeiroAndar(int veioDeOnde){
+int Cozinha(){
+    ALLEGRO_BITMAP *fundo = NULL;
+    ALLEGRO_BITMAP *frente = NULL;
+    ALLEGRO_BITMAP *fade = NULL;
+    ALLEGRO_SAMPLE *abrirPorta = NULL;
+    fundo = al_load_bitmap("imgs/cozinha/CozinhaFundo.png");
+    frente = al_load_bitmap("imgs/cozinha/CozinhaFrente.png");
+    fade = al_load_bitmap("imgs/efeitos/fade.png");
+    abrirPorta = al_load_sample("sons/portaAbrindoFechando.wav");
+    struct personagem rafa;
+    iniciaRafa(&rafa);
+    enum posicoes {RIGHT, LEFT};
+    int fadeOpacidade = 255;
+    int opacidadeEmUmaEntradaS = 0;
+    int timerEscondido = 0;
+    char salaDaPortaS[50];
+    bool escondido = false;
+    bool inicio = true;
+    bool fim = false;
+    bool emUmaEntradaS = false;
+    bool teclas[5] = {false,false,false,false,false};
+    rafa.inverte_sprite = LEFT;
+    rafa.pos_x = 1100;
+    while(!trocarCena && !sair){
+        iniciaTimer();
+        emUmaEntradaS = false;
+        if(timerEscondido>0){
+            timerEscondido--;
+        }
+        while(!al_event_queue_is_empty(filaDeEvento)){
+            ALLEGRO_EVENT evento;
+            al_wait_for_event(filaDeEvento, &evento);
+
+            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
+                sair = true;
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
+                    teclas[0] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
+                    teclas[1] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[2] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[3] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
+                    teclas[4] = false;
+                }
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
+                    teclas[0] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
+                    teclas[1] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[2] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[3] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
+                    teclas[4] = true;
+                }
+            }
+        }
+        if(!teclas[0] && !teclas[1]){
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        else if(teclas[0] && teclas[1]){
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        else if(((teclas[0] && teclas [4] && rafa.pos_x > -10) || (teclas[1] && teclas[4] && rafa.pos_x < 1110))&& !escondido){
+            rafa.andando = false;
+            rafa.correndo = true;
+            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
+        }
+        else if(((teclas[0] && rafa.pos_x > -10) || (teclas[1] && rafa.pos_x < 1110)) && !escondido){
+            rafa.andando = true;
+            rafa.correndo = false;
+            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
+        }
+        else{
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        if(rafa.correndo || rafa.andando){
+            rafa.velocidade = rafa.correndo?6:3;
+            rafa.linha_atual = rafa.correndo?2:1;
+            rafa.frames_sprite = 6;
+            rafa.colunas_sprite = 8;
+            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
+        }
+        else {
+            rafa.velocidade = 0;
+            rafa.linha_atual = 0;
+            rafa.frames_sprite = 25;
+            rafa.colunas_sprite = 5;
+            if(rafa.coluna_atual>4){
+                rafa.coluna_atual = 0;
+            }
+        }
+        if(rafa.cont_frames > rafa.frames_sprite){
+            rafa.cont_frames = 0;
+            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
+        }
+        else{
+            rafa.cont_frames++;
+        }
+        if(rafa.pos_x>170 && rafa.pos_x<300){
+            if(teclas[2]){
+                if(!escondido && timerEscondido <= 0){
+                    escondido = true;
+                    timerEscondido = 240;
+                    rafa.pos_x = 235;
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                else if(escondido && timerEscondido <= 0){
+                    escondido = false;
+                    timerEscondido = 240;
+                }
+            }
+            emUmaEntradaS = true;
+            if(!escondido){
+                strcpy(salaDaPortaS, "esconder na despensa");
+            }
+            else{
+                strcpy(salaDaPortaS, "sair da despensa");
+            }
+        }
+        else if(rafa.pos_x>1100 && rafa.pos_x<1200){
+            if(teclas[2]){
+                if(!fim){
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 2;
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "Hall");
+        }
+        rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
+        rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
+        al_draw_bitmap(fundo,0,0,0);
+        if(!escondido){
+            al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
+                rafa.larguraSprite,rafa.alturaSprite,
+                rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        }
+        if(emUmaEntradaS){
+            if(opacidadeEmUmaEntradaS<255){
+                opacidadeEmUmaEntradaS+=5;
+            }
+            if(strcmp(salaDaPortaS, "esconder na despensa")!=0 && strcmp(salaDaPortaS, "sair da despensa")!=0){
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+            else if(timerEscondido>0){
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,30,30),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+            else{
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+        }
+        else{
+            opacidadeEmUmaEntradaS = 0;
+        }
+        al_draw_bitmap(frente,0,0,0);
+        if(inicio){
+            if(fadeOpacidade>0){
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade -= 5;
+            }
+            else{
+                inicio = false;
+                fadeOpacidade = 0;
+            }
+        }
+        else if(fim){
+            if(fadeOpacidade<255){
+                if(fadeOpacidade > 255){
+                    fadeOpacidade = 255;
+                }
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade += 5;
+            }
+            else{
+                trocarCena = true;
+                fim = false;
+            }
+        }
+        if(trocarCena){
+            al_draw_bitmap(fade,0,0,0);
+            al_rest(3);
+        }
+
+        al_flip_display();
+        if(obterTempo()< 1.0/FPS){
+            al_rest((1.0/FPS)-obterTempo());
+        }
+    }
+    al_destroy_bitmap(fundo);
+    al_destroy_bitmap(frente);
+    al_destroy_bitmap(fade);
+    al_destroy_sample(abrirPorta);
+    acaoAnterior = 3;
+    return 1;
+}
+
+int BanheiroPrimeiroAndar(){
+    return 1;
+}
+
+int Biblioteca(int veioDeOnde){
+    return 1;
+}
+int SalaDeJantar(int veioDeOnde){
     return 1;
 }
 
@@ -185,13 +426,11 @@ int Hall(int veioDeOnde){
     ALLEGRO_BITMAP *fundo = NULL;
     ALLEGRO_BITMAP *frente = NULL;
     ALLEGRO_BITMAP *fade = NULL;
-    ALLEGRO_SAMPLE *chuva = NULL;
     ALLEGRO_SAMPLE *abrirPorta = NULL;
     ALLEGRO_TRANSFORM camera;
     fundo = al_load_bitmap("imgs/hall/HallFundo.png");
     frente = al_load_bitmap("imgs/hall/HallFrente.png");
     fade = al_load_bitmap("imgs/efeitos/fade.png");
-    chuva = al_load_sample("sons/rainBackground.wav");
     abrirPorta = al_load_sample("sons/portaAbrindoFechando.wav");
     struct personagem rafa;
     iniciaRafa(&rafa);
@@ -210,9 +449,11 @@ int Hall(int veioDeOnde){
     bool emUmaEntradaI = false;
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = RIGHT;
-    al_play_sample(chuva,1,0.5,1,ALLEGRO_PLAYMODE_LOOP,0);
     if(veioDeOnde == 1){
         rafa.pos_x = 1400;
+    }
+    else if(veioDeOnde == 1){
+        rafa.pos_x = 10;
     }
     while(!trocarCena && !sair){
         iniciaTimer();
@@ -305,7 +546,7 @@ int Hall(int veioDeOnde){
         else{
             rafa.cont_frames++;
         }
-        if(rafa.pos_x>0 && rafa.pos_x<10){
+        if(rafa.pos_x>-10 && rafa.pos_x<10){
             if(teclas[2]){
                 if(!fim){
                     al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
@@ -433,7 +674,6 @@ int Hall(int veioDeOnde){
     al_destroy_bitmap(fundo);
     al_destroy_bitmap(frente);
     al_destroy_bitmap(fade);
-    al_destroy_sample(chuva);
     al_destroy_sample(abrirPorta);
     acaoAnterior = 2;
     return 1;
@@ -465,18 +705,18 @@ int HallAnim(){
     char dialogos[13][100];
     int tempoPularDialogo = 0;
     strcpy(dialogos[0], "Ilan: Ae Rafa, que mansão mais estranha, tu não acha ?");
-    strcpy(dialogos[1], "Rafa: Pois é, tem algo de errado, tá muito frio aqui dentro!");
+    strcpy(dialogos[1], "Rafael: Pois é, tem algo de errado, tá muito frio aqui dentro!");
     strcpy(dialogos[2], "Ilan: Sim, ae que que se acha da gente se separar pra procurarmos a Larissa ?");
-    strcpy(dialogos[3], "Rafa: Sei não em, é ai que a galera morre nos filmes.");
+    strcpy(dialogos[3], "Rafael: Sei não em, é ai que a galera morre nos filmes.");
     strcpy(dialogos[4], "Ilan: Ta é doido Rafa, tem nada aqui não ma.");
-    strcpy(dialogos[5], "Rafa: A Larissa tava falando que tinha uns negócios estranhos aqui.");
+    strcpy(dialogos[5], "Rafael: A Larissa tava falando que tinha uns negócios estranhos aqui.");
     strcpy(dialogos[6], "Ilan: Me deixa de bobagem pô, você sabe que fantasmas não existem.");
-    strcpy(dialogos[7], "Rafa: Mano impressão minha ou a porta trancou ?");
+    strcpy(dialogos[7], "Rafael: Mano impressão minha ou a porta trancou ?");
     strcpy(dialogos[8], "Ilan: Eu ouvi também, vê ai macho.");
-    strcpy(dialogos[9], "Rafa: Trancada...");
-    strcpy(dialogos[10], "Rafa: Que foi isso ?");
+    strcpy(dialogos[9], "Rafael: Trancada...");
+    strcpy(dialogos[10], "Rafael: Que foi isso ?");
     strcpy(dialogos[11], "Ilan: Alguma coisa caiu no outro cômodo, vou lá dar uma olhada.");
-    strcpy(dialogos[12], "Rafa: Toma cuidado Ilan e vê se não demora.");
+    strcpy(dialogos[12], "Rafael: Toma cuidado Ilan e vê se não demora.");
     int ato = 0;
     int opacidadedb = 0;
     int fadeOpacidade = 255;
@@ -523,7 +763,7 @@ int HallAnim(){
         }
         if(rafa.andando || rafa.correndo){
             rafa.linha_atual = rafa.andando?1:2;
-            rafa.velocidade = rafa.andando?2:4;
+            rafa.velocidade = rafa.andando?3:6;
             rafa.colunas_sprite = 8;
             rafa.frames_sprite = 6;
         }
@@ -538,7 +778,7 @@ int HallAnim(){
         }
         if(ilan.andando || ilan.correndo){
             ilan.linha_atual = ilan.andando?1:2;
-            ilan.velocidade = ilan.andando?2:4;
+            ilan.velocidade = ilan.andando?3:6;
             ilan.colunas_sprite = 8;
             ilan.frames_sprite = 6;
         }
@@ -953,6 +1193,9 @@ void destroi(){
     if(pixelFontPequena){
         al_destroy_font(pixelFontPequena);
     }
+    if(chuvaPadrao){
+        al_destroy_sample(chuvaPadrao);
+    }
 }
 
 int init(){
@@ -1050,7 +1293,6 @@ int init(){
         destroi();
         return -1;
     }
-
     al_set_display_icon(janela,icone);
 
     pixelFont = al_load_font("fontes/pixelFont.ttf",14,0);
@@ -1068,6 +1310,12 @@ int init(){
     pixelFontPequena = al_load_font("fontes/pixelFont.ttf",8,0);
     if(!pixelFontPequena){
         erroMsg("Algo deu errado ao carregar a fonte");
+        destroi();
+        return -1;
+    }
+    chuvaPadrao = al_load_sample("sons/rainBackground.wav");
+    if(!chuvaPadrao){
+        erroMsg("Algo deu errado ao carregar um sample");
         destroi();
         return -1;
     }

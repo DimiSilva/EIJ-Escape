@@ -1,0 +1,1 @@
+al_draw_textf(pixelFont,al_map_rgb(255,255,255),rafa.pos_x+50,rafa.pos_y -100,ALLEGRO_ALIGN_CENTER,"%f",rafa.pos_x);
