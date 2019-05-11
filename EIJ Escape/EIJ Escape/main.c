@@ -892,6 +892,10 @@ int CorredorSegundoAndar(int veioDeOnde){
             al_rest((1.0/FPS)-obterTempo());
         }
     }
+    atualizaCamera(&cameraPosition, rafa.pos_x,rafa.larguraSprite);
+    al_identity_transform(&camera);
+    al_translate_transform(&camera, -cameraPosition,0);
+    al_use_transform(&camera);
     al_destroy_bitmap(fundo);
     al_destroy_bitmap(frente);
     al_destroy_bitmap(fade);
@@ -1163,6 +1167,11 @@ int Hall(int veioDeOnde){
             al_rest((1.0/FPS)-obterTempo());
         }
     }
+    atualizaCamera(&cameraPosition, 0,rafa.larguraSprite);
+    al_identity_transform(&camera);
+    al_translate_transform(&camera, -cameraPosition,0);
+    al_use_transform(&camera);
+
     al_destroy_bitmap(fundo);
     al_destroy_bitmap(frente);
     al_destroy_bitmap(fade);
