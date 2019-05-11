@@ -36,7 +36,7 @@ ALLEGRO_FONT *pixelFontTitle = NULL;
 
 bool sair = false;
 bool trocarCena = false;
-int acao = 6;
+int acao = 2;
 int acaoAnterior = 1;
 
 bool chuvaPadraoAtiva = false;
@@ -201,7 +201,7 @@ int main(){
                 CorredorSegundoAndar(acaoAnterior);
             break;
             case 6:
-                BanheiroSegundoAndar(acaoAnterior);
+                BanheiroSegundoAndar();
             break;
         }
         trocarCena = false;
@@ -214,20 +214,16 @@ int BanheiroSegundoAndar(){
     ALLEGRO_BITMAP *frente = NULL;
     ALLEGRO_BITMAP *fade = NULL;
     ALLEGRO_SAMPLE *abrirPorta = NULL;
-    ALLEGRO_SAMPLE *cortinaBanheiro = NULL;
     fundo = al_load_bitmap("imgs/banheiro2Andar/Banheiro2AndarFundo.png");
     frente = al_load_bitmap("imgs/banheiro2Andar/Banheiro2AndarFrente.png");
     fade = al_load_bitmap("imgs/efeitos/fade.png");
     abrirPorta = al_load_sample("sons/portaAbrindoFechando.wav");
-    cortinaBanheiro = al_load_sample("sons/showerCurtain.wav");
     struct personagem rafa;
     iniciaRafa(&rafa);
     enum posicoes {RIGHT, LEFT};
     int fadeOpacidade = 255;
     int opacidadeEmUmaEntradaS = 0;
-    int timerEscondido = 0;
     char salaDaPortaS[50];
-    bool escondido = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -237,9 +233,6 @@ int BanheiroSegundoAndar(){
     while(!trocarCena && !sair){
         iniciaTimer();
         emUmaEntradaS = false;
-        if(timerEscondido>0){
-            timerEscondido--;
-        }
         while(!al_event_queue_is_empty(filaDeEvento)){
             ALLEGRO_EVENT evento;
             al_wait_for_event(filaDeEvento, &evento);
@@ -290,12 +283,12 @@ int BanheiroSegundoAndar(){
             rafa.andando = false;
             rafa.correndo = false;
         }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -10) || (teclas[1] && teclas[4] && rafa.pos_x < 170))&& !escondido){
+        else if(((teclas[0] && teclas [4] && rafa.pos_x > -10) || (teclas[1] && teclas[4] && rafa.pos_x < 170))){
             rafa.andando = false;
             rafa.correndo = true;
             rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
         }
-        else if(((teclas[0] && rafa.pos_x > -10) || (teclas[1] && rafa.pos_x < 170)) && !escondido){
+        else if(((teclas[0] && rafa.pos_x > -10) || (teclas[1] && rafa.pos_x < 170))){
             rafa.andando = true;
             rafa.correndo = false;
             rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
@@ -327,31 +320,7 @@ int BanheiroSegundoAndar(){
         else{
             rafa.cont_frames++;
         }
-        if(rafa.pos_x>150 && rafa.pos_x<251){
-            if(teclas[2]){
-                if(!escondido && timerEscondido <= 0){
-                    escondido = true;
-                    timerEscondido = 240;
-                    rafa.pos_x = 250;
-                    rafa.inverte_sprite = LEFT;
-                    al_play_sample(cortinaBanheiro,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                }
-                else if(escondido && timerEscondido <= 0){
-                    escondido = false;
-                    timerEscondido = 240;
-                    rafa.pos_x = 170;
-                    al_play_sample(cortinaBanheiro,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                }
-            }
-            emUmaEntradaS = true;
-            if(!escondido){
-                strcpy(salaDaPortaS, "esconder no box");
-            }
-            else{
-                strcpy(salaDaPortaS, "sair do box");
-            }
-        }
-        else if(rafa.pos_x>-20 && rafa.pos_x<30){
+        if(rafa.pos_x>-20 && rafa.pos_x<30){
             if(teclas[2]){
                 if(!fim){
                     al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
@@ -372,18 +341,8 @@ int BanheiroSegundoAndar(){
             if(opacidadeEmUmaEntradaS<255){
                 opacidadeEmUmaEntradaS+=5;
             }
-            if(strcmp(salaDaPortaS, "esconder no box")!=0 && strcmp(salaDaPortaS, "sair do box")!=0){
-                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+            al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
                     rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
-            }
-            else if(timerEscondido>0){
-                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,30,30),
-                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
-            }
-            else{
-                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
-                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
-            }
         }
         else{
             opacidadeEmUmaEntradaS = 0;
@@ -426,7 +385,6 @@ int BanheiroSegundoAndar(){
     al_destroy_bitmap(frente);
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
-    al_destroy_sample(cortinaBanheiro);
     acaoAnterior = 6;
     return 1;
 }
@@ -996,7 +954,7 @@ int CorredorSegundoAndar(int veioDeOnde){
         else{
             rafa.cont_frames++;
         }
-        if(rafa.pos_x>0 && rafa.pos_x<200){
+        if(rafa.pos_x>0 && rafa.pos_x<100){
             if(teclas[2]){
                 if(!fim){
                     al_play_sample(passosEscada,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
@@ -1007,7 +965,40 @@ int CorredorSegundoAndar(int veioDeOnde){
             emUmaEntradaS = true;
             strcpy(salaDaPortaS, "Hall");
         }
-        else if(rafa.pos_x>700 && rafa.pos_x<810){
+        else if(rafa.pos_x>270 && rafa.pos_x<530){
+            if(teclas[2]){
+                /*if(!fim){
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 6;*/
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "Corredor");
+        }
+        else if(rafa.pos_x>700 && rafa.pos_x<830){
+            if(teclas[2]){
+                /*if(!fim){
+                    al_play_sample(passosEscada,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 5;*/
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "-");
+        }
+        else if(rafa.pos_x>1170 && rafa.pos_x<1300){
+            if(teclas[2]){
+                /*if(!fim){
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 6;*/
+            }
+            emUmaEntradaI = true;
+            strcpy(salaDaPortaI, "-");
+        }
+        else if(rafa.pos_x>1840 && rafa.pos_x<1972){
             if(teclas[2]){
                 if(!fim){
                     al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
@@ -1018,43 +1009,28 @@ int CorredorSegundoAndar(int veioDeOnde){
             emUmaEntradaS = true;
             strcpy(salaDaPortaS, "Banheiro do segundo andar");
         }
-        else if(rafa.pos_x>1300 && rafa.pos_x<1600){
+        else if(rafa.pos_x>2150 && rafa.pos_x<2280){
             if(teclas[2]){
-                if(!fim){
-                    al_play_sample(passosEscada,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                }
-                fim = true;
-                acao = 5;
-            }
-            emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "-------");
-        }
-        else if(rafa.pos_x>2270 && rafa.pos_x<2400){
-            if(teclas[2]){
-                if(!fim){
+                /*if(!fim){
                     al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
                 }
                 fim = true;
-                acao = 6;
+                acao = 7;*/
             }
-            emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "--------");
-        }
-        else if(rafa.pos_x>2900 && rafa.pos_x<3000){
-            if(teclas[2]){
-                if(!fim){
-                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                }
-                fim = true;
-                acao = 7;
-            }
-            emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "--------");
+            emUmaEntradaI = true;
+            strcpy(salaDaPortaI, "Quarto de Casal");
         }
 
-        if(rafa.pos_x>1350 && rafa.pos_x <1550){
-            emUmaEntradaI = true;
-            strcpy(salaDaPortaI, "--------");
+        if(rafa.pos_x>2500 && rafa.pos_x <2640){
+            if(teclas[2]){
+                /*if(!fim){
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 7;*/
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "Quarto de hóspedes");
         }
         atualizaCamera(&cameraPosition, rafa.pos_x,rafa.larguraSprite);
         al_identity_transform(&camera);
@@ -1116,15 +1092,17 @@ int CorredorSegundoAndar(int veioDeOnde){
             al_draw_bitmap(fade,0,0,0);
             al_rest(3);
         }
+        al_draw_textf(pixelFont,al_map_rgb(255,255,255),rafa.pos_x+50,rafa.pos_y -100,ALLEGRO_ALIGN_CENTER,"%f",rafa.pos_x);
         al_flip_display();
         if(obterTempo()< 1.0/FPS){
             al_rest((1.0/FPS)-obterTempo());
         }
     }
-    atualizaCamera(&cameraPosition, rafa.pos_x,rafa.larguraSprite);
+    atualizaCamera(&cameraPosition, 0,rafa.larguraSprite);
     al_identity_transform(&camera);
     al_translate_transform(&camera, -cameraPosition,0);
     al_use_transform(&camera);
+
     al_destroy_bitmap(fundo);
     al_destroy_bitmap(frente);
     al_destroy_bitmap(fade);
