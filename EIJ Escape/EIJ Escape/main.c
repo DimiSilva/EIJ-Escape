@@ -36,7 +36,7 @@ ALLEGRO_FONT *pixelFontTitle = NULL;
 
 bool sair = false;
 bool trocarCena = false;
-int acao = 2;
+int acao = 6;
 int acaoAnterior = 1;
 
 bool chuvaPadraoAtiva = false;
@@ -53,6 +53,7 @@ int HallAnim();
 int Hall(int veioDeOnde);
 int Cozinha();
 int BanheiroPrimeiroAndar();
+int BanheiroSegundoAndar();
 int CorredorSegundoAndar(int veioDeOnde);
 int Biblioteca(int veioDeOnde);
 int SalaDeJantar(int veioDeOnde);
@@ -199,10 +200,234 @@ int main(){
             case 5:
                 CorredorSegundoAndar(acaoAnterior);
             break;
+            case 6:
+                BanheiroSegundoAndar(acaoAnterior);
+            break;
         }
         trocarCena = false;
     }
     destroi();
+    return 1;
+}
+int BanheiroSegundoAndar(){
+    ALLEGRO_BITMAP *fundo = NULL;
+    ALLEGRO_BITMAP *frente = NULL;
+    ALLEGRO_BITMAP *fade = NULL;
+    ALLEGRO_SAMPLE *abrirPorta = NULL;
+    ALLEGRO_SAMPLE *cortinaBanheiro = NULL;
+    fundo = al_load_bitmap("imgs/banheiro2Andar/Banheiro2AndarFundo.png");
+    frente = al_load_bitmap("imgs/banheiro2Andar/Banheiro2AndarFrente.png");
+    fade = al_load_bitmap("imgs/efeitos/fade.png");
+    abrirPorta = al_load_sample("sons/portaAbrindoFechando.wav");
+    cortinaBanheiro = al_load_sample("sons/showerCurtain.wav");
+    struct personagem rafa;
+    iniciaRafa(&rafa);
+    enum posicoes {RIGHT, LEFT};
+    int fadeOpacidade = 255;
+    int opacidadeEmUmaEntradaS = 0;
+    int timerEscondido = 0;
+    char salaDaPortaS[50];
+    bool escondido = false;
+    bool inicio = true;
+    bool fim = false;
+    bool emUmaEntradaS = false;
+    bool teclas[5] = {false,false,false,false,false};
+    rafa.inverte_sprite = RIGHT;
+    rafa.pos_x = 20;
+    while(!trocarCena && !sair){
+        iniciaTimer();
+        emUmaEntradaS = false;
+        if(timerEscondido>0){
+            timerEscondido--;
+        }
+        while(!al_event_queue_is_empty(filaDeEvento)){
+            ALLEGRO_EVENT evento;
+            al_wait_for_event(filaDeEvento, &evento);
+
+            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
+                sair = true;
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
+                    teclas[0] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
+                    teclas[1] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[2] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[3] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
+                    teclas[4] = false;
+                }
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
+                    teclas[0] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
+                    teclas[1] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[2] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[3] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
+                    teclas[4] = true;
+                }
+            }
+        }
+        if(!teclas[0] && !teclas[1]){
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        else if(teclas[0] && teclas[1]){
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        else if(((teclas[0] && teclas [4] && rafa.pos_x > -10) || (teclas[1] && teclas[4] && rafa.pos_x < 170))&& !escondido){
+            rafa.andando = false;
+            rafa.correndo = true;
+            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
+        }
+        else if(((teclas[0] && rafa.pos_x > -10) || (teclas[1] && rafa.pos_x < 170)) && !escondido){
+            rafa.andando = true;
+            rafa.correndo = false;
+            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
+        }
+        else{
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        if(rafa.correndo || rafa.andando){
+            rafa.velocidade = rafa.correndo?6:3;
+            rafa.linha_atual = rafa.correndo?2:1;
+            rafa.frames_sprite = 6;
+            rafa.colunas_sprite = 8;
+            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
+        }
+        else {
+            rafa.velocidade = 0;
+            rafa.linha_atual = 0;
+            rafa.frames_sprite = 25;
+            rafa.colunas_sprite = 5;
+            if(rafa.coluna_atual>4){
+                rafa.coluna_atual = 0;
+            }
+        }
+        if(rafa.cont_frames > rafa.frames_sprite){
+            rafa.cont_frames = 0;
+            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
+        }
+        else{
+            rafa.cont_frames++;
+        }
+        if(rafa.pos_x>150 && rafa.pos_x<251){
+            if(teclas[2]){
+                if(!escondido && timerEscondido <= 0){
+                    escondido = true;
+                    timerEscondido = 240;
+                    rafa.pos_x = 250;
+                    rafa.inverte_sprite = LEFT;
+                    al_play_sample(cortinaBanheiro,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                else if(escondido && timerEscondido <= 0){
+                    escondido = false;
+                    timerEscondido = 240;
+                    rafa.pos_x = 170;
+                    al_play_sample(cortinaBanheiro,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+            }
+            emUmaEntradaS = true;
+            if(!escondido){
+                strcpy(salaDaPortaS, "esconder no box");
+            }
+            else{
+                strcpy(salaDaPortaS, "sair do box");
+            }
+        }
+        else if(rafa.pos_x>-20 && rafa.pos_x<30){
+            if(teclas[2]){
+                if(!fim){
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 5;
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "Corredor do segundo andar");
+        }
+        rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
+        rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
+        al_draw_bitmap(fundo,0,0,0);
+        al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
+            rafa.larguraSprite,rafa.alturaSprite,
+            rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        if(emUmaEntradaS){
+            if(opacidadeEmUmaEntradaS<255){
+                opacidadeEmUmaEntradaS+=5;
+            }
+            if(strcmp(salaDaPortaS, "esconder no box")!=0 && strcmp(salaDaPortaS, "sair do box")!=0){
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+            else if(timerEscondido>0){
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,30,30),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+            else{
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+        }
+        else{
+            opacidadeEmUmaEntradaS = 0;
+        }
+        al_draw_bitmap(frente,0,0,0);
+        if(inicio){
+            if(fadeOpacidade>0){
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade -= 5;
+            }
+            else{
+                inicio = false;
+                fadeOpacidade = 0;
+            }
+        }
+        else if(fim){
+            if(fadeOpacidade<255){
+                if(fadeOpacidade > 255){
+                    fadeOpacidade = 255;
+                }
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade += 5;
+            }
+            else{
+                trocarCena = true;
+                fim = false;
+            }
+        }
+        if(trocarCena){
+            al_draw_bitmap(fade,0,0,0);
+            al_rest(3);
+        }
+
+        al_flip_display();
+        if(obterTempo()< 1.0/FPS){
+            al_rest((1.0/FPS)-obterTempo());
+        }
+    }
+    al_destroy_bitmap(fundo);
+    al_destroy_bitmap(frente);
+    al_destroy_bitmap(fade);
+    al_destroy_sample(abrirPorta);
+    al_destroy_sample(cortinaBanheiro);
+    acaoAnterior = 6;
     return 1;
 }
 int Cozinha(){
@@ -676,6 +901,10 @@ int CorredorSegundoAndar(int veioDeOnde){
     if(veioDeOnde == 2){
         rafa.pos_x = 10;
     }
+    else if(veioDeOnde == 6){
+        rafa.pos_x = 740;
+    }
+
     while(!trocarCena && !sair){
         iniciaTimer();
         emUmaEntradaS = false;
@@ -778,16 +1007,16 @@ int CorredorSegundoAndar(int veioDeOnde){
             emUmaEntradaS = true;
             strcpy(salaDaPortaS, "Hall");
         }
-        /*else if(rafa.pos_x>480 && rafa.pos_x<610){
+        else if(rafa.pos_x>700 && rafa.pos_x<810){
             if(teclas[2]){
                 if(!fim){
                     al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
                 }
                 fim = true;
-                acao = 4;
+                acao = 6;
             }
             emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "Banheiro");
+            strcpy(salaDaPortaS, "Banheiro do segundo andar");
         }
         else if(rafa.pos_x>1300 && rafa.pos_x<1600){
             if(teclas[2]){
@@ -798,7 +1027,7 @@ int CorredorSegundoAndar(int veioDeOnde){
                 acao = 5;
             }
             emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "Corredor do segundo andar");
+            strcpy(salaDaPortaS, "-------");
         }
         else if(rafa.pos_x>2270 && rafa.pos_x<2400){
             if(teclas[2]){
@@ -809,7 +1038,7 @@ int CorredorSegundoAndar(int veioDeOnde){
                 acao = 6;
             }
             emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "Biblioteca");
+            strcpy(salaDaPortaS, "--------");
         }
         else if(rafa.pos_x>2900 && rafa.pos_x<3000){
             if(teclas[2]){
@@ -820,13 +1049,13 @@ int CorredorSegundoAndar(int veioDeOnde){
                 acao = 7;
             }
             emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "Sala de jantar");
+            strcpy(salaDaPortaS, "--------");
         }
 
         if(rafa.pos_x>1350 && rafa.pos_x <1550){
             emUmaEntradaI = true;
-            strcpy(salaDaPortaI, "Saida");
-        }*/
+            strcpy(salaDaPortaI, "--------");
+        }
         atualizaCamera(&cameraPosition, rafa.pos_x,rafa.larguraSprite);
         al_identity_transform(&camera);
         al_translate_transform(&camera, -cameraPosition,0);
@@ -1075,6 +1304,7 @@ int Hall(int veioDeOnde){
             emUmaEntradaS = true;
             strcpy(salaDaPortaS, "Corredor do segundo andar");
         }
+
         else if(rafa.pos_x>2270 && rafa.pos_x<2400){
             if(teclas[2]){
                 if(!fim){
@@ -1102,6 +1332,7 @@ int Hall(int veioDeOnde){
             emUmaEntradaI = true;
             strcpy(salaDaPortaI, "Saida");
         }
+
         atualizaCamera(&cameraPosition, rafa.pos_x,rafa.larguraSprite);
         al_identity_transform(&camera);
         al_translate_transform(&camera, -cameraPosition,0);
