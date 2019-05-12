@@ -36,10 +36,8 @@ ALLEGRO_FONT *pixelFontTitle = NULL;
 
 bool sair = false;
 bool trocarCena = false;
-int acao = 2;
-int acaoAnterior = 1;
-
-bool chuvaPadraoAtiva = false;
+int acao = 0;
+int acaoAnterior = 0;
 
 double tempoInicial = 0;
 //fim variaveis e ponteiros
@@ -57,6 +55,14 @@ int BanheiroSegundoAndar();
 int CorredorSegundoAndar(int veioDeOnde);
 int Biblioteca(int veioDeOnde);
 int SalaDeJantar(int veioDeOnde);
+int Varanda(int veioDeOnde);
+int CorredorPrimeiroAndar(int veioDeOnde);
+int Escritorio(int veioDeOnde);
+int CorredorSegundoAndar1(int veioDeOnde);
+int QuartoHospedes();
+int QuartoCasal(int veioDeOnde);
+int QuartoYuka();
+int banheiroQuartoCasal();
 
 void atualizaCamera(float *cameraPosition, float playerPosition, float playerWidth);
 
@@ -71,6 +77,7 @@ void iniciaTimer();
 double obterTempo();
 //fim funcoes
 
+//structs e funcoes de inicialização de personagem
 struct personagem{
     ALLEGRO_BITMAP *spritesheet;
     int alturaSprite, larguraSprite;
@@ -84,6 +91,7 @@ struct personagem{
     bool correndo;
     int inverte_sprite;
 };
+//fim structs
 
 void iniciaRafa(struct personagem *h){
     h->spritesheet = spriteRafa;
@@ -161,17 +169,18 @@ void iniciaYuka(struct personagem *h){
     h->andando = true;
     h->correndo = false;
 }
+//fim inicialização de personagem
 
 int main(){
     init();
     while(!sair){
-        if(acao>0&&!chuvaPadraoAtiva){
-            al_play_sample(chuvaPadrao,1,0.5,1,ALLEGRO_PLAYMODE_LOOP,&idChuva);
-            chuvaPadraoAtiva = true;
-        }
-        else if(acao == 0){
-            chuvaPadraoAtiva = false;
+        if(acao!=0&&acao!=14){
             al_stop_sample(&idChuva);
+            al_play_sample(chuvaPadrao,0.3,0.5,1,ALLEGRO_PLAYMODE_LOOP,&idChuva);
+        }
+        else{
+            al_stop_sample(&idChuva);
+            al_play_sample(chuvaPadrao,0.9,0.5,1,ALLEGRO_PLAYMODE_LOOP,&idChuva);
         }
         while(!al_event_queue_is_empty(filaDeEvento)){
             ALLEGRO_EVENT evento;
@@ -203,10 +212,235 @@ int main(){
             case 6:
                 BanheiroSegundoAndar();
             break;
+            case 14:
+                Varanda(acaoAnterior);
+            break;
         }
         trocarCena = false;
     }
     destroi();
+    return 1;
+}
+int Varanda(int veioDeOnde){
+    ALLEGRO_BITMAP *fundo = NULL;
+    ALLEGRO_BITMAP *frente1 = NULL;
+    ALLEGRO_BITMAP *frente2 = NULL;
+    ALLEGRO_BITMAP *frente3 = NULL;
+    ALLEGRO_BITMAP *frente4 = NULL;
+    ALLEGRO_BITMAP *fade = NULL;
+    ALLEGRO_SAMPLE *abrirPorta = NULL;
+    fundo = al_load_bitmap("imgs/varanda/varandaFundo.png");
+    frente1 = al_load_bitmap("imgs/varanda/VarandaFrente1.png");
+    frente2 = al_load_bitmap("imgs/varanda/VarandaFrente2.png");
+    frente3 = al_load_bitmap("imgs/varanda/VarandaFrente3.png");
+    frente4 = al_load_bitmap("imgs/varanda/VarandaFrente4.png");
+    fade = al_load_bitmap("imgs/efeitos/fade.png");
+    abrirPorta = al_load_sample("sons/portaAbrindoFechando.wav");
+    struct personagem rafa;
+    iniciaRafa(&rafa);
+    enum posicoes {RIGHT, LEFT};
+    int frames = 0;
+    int fadeOpacidade = 255;
+    int opacidadeEmUmaEntradaS = 0;
+    char salaDaPortaS[50];
+    bool inicio = true;
+    bool fim = false;
+    bool emUmaEntradaS = false;
+    bool teclas[5] = {false,false,false,false,false};
+    rafa.inverte_sprite = RIGHT;
+    if(veioDeOnde == 5){
+        rafa.pos_x = 500;
+    }
+    if(veioDeOnde == 0){
+        rafa.pos_x = 850;
+    }
+
+    while(!trocarCena && !sair){
+        iniciaTimer();
+        emUmaEntradaS = false;
+        while(!al_event_queue_is_empty(filaDeEvento)){
+            ALLEGRO_EVENT evento;
+            al_wait_for_event(filaDeEvento, &evento);
+
+            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
+                sair = true;
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
+                    teclas[0] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
+                    teclas[1] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[2] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[3] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
+                    teclas[4] = false;
+                }
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
+                    teclas[0] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
+                    teclas[1] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[2] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[3] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
+                    teclas[4] = true;
+                }
+            }
+        }
+        if(!teclas[0] && !teclas[1]){
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        else if(teclas[0] && teclas[1]){
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        else if(((teclas[0] && teclas [4] && rafa.pos_x > 145) || (teclas[1] && teclas[4] && rafa.pos_x < 959))){
+            rafa.andando = false;
+            rafa.correndo = true;
+            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
+        }
+        else if(((teclas[0] && rafa.pos_x > 145) || (teclas[1] && rafa.pos_x < 959))){
+            rafa.andando = true;
+            rafa.correndo = false;
+            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
+        }
+        else{
+            rafa.andando = false;
+            rafa.correndo = false;
+        }
+        if(rafa.correndo || rafa.andando){
+            rafa.velocidade = rafa.correndo?6:3;
+            rafa.linha_atual = rafa.correndo?2:1;
+            rafa.frames_sprite = 6;
+            rafa.colunas_sprite = 8;
+            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
+        }
+        else {
+            rafa.velocidade = 0;
+            rafa.linha_atual = 0;
+            rafa.frames_sprite = 25;
+            rafa.colunas_sprite = 5;
+            if(rafa.coluna_atual>4){
+                rafa.coluna_atual = 0;
+            }
+        }
+        if(rafa.cont_frames > rafa.frames_sprite){
+            rafa.cont_frames = 0;
+            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
+        }
+        else{
+            rafa.cont_frames++;
+        }
+        if(rafa.pos_x>450 && rafa.pos_x<650){
+            if(teclas[2]){
+                if(!fim){
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 5;
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "Corredor do segundo andar");
+        }
+        else if(rafa.pos_x>800 && rafa.pos_x<900){
+            if(teclas[2]){
+                if(!fim){
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 0;
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "Quarto de hospedes");
+        }
+        rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
+        rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
+
+        al_draw_bitmap(fundo,0,0,0);
+        al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
+            rafa.larguraSprite,rafa.alturaSprite,
+            rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        if(emUmaEntradaS){
+            if(opacidadeEmUmaEntradaS<255){
+                opacidadeEmUmaEntradaS+=5;
+            }
+            al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+        }
+        else{
+            opacidadeEmUmaEntradaS = 0;
+        }
+        if(frames > 12){
+            frames = 0;
+        }
+        if(frames>=0 && frames <=3){
+            al_draw_bitmap(frente1,0,0,0);
+        }
+        else if(frames <=6){
+            al_draw_bitmap(frente2,0,0,0);
+        }
+        else if(frames <= 9){
+            al_draw_bitmap(frente3,0,0,0);
+        }
+        else if (frames <= 12){
+            al_draw_bitmap(frente4,0,0,0);
+        }
+        if(inicio){
+            if(fadeOpacidade>0){
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade -= 5;
+            }
+            else{
+                inicio = false;
+                fadeOpacidade = 0;
+            }
+        }
+        else if(fim){
+            if(fadeOpacidade<255){
+                if(fadeOpacidade > 255){
+                    fadeOpacidade = 255;
+                }
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade += 5;
+            }
+            else{
+                trocarCena = true;
+                fim = false;
+            }
+        }
+        if(trocarCena){
+            al_draw_bitmap(fade,0,0,0);
+            al_rest(3);
+        }
+        al_flip_display();
+        frames++;
+        if(obterTempo()< 1.0/FPS){
+            al_rest((1.0/FPS)-obterTempo());
+        }
+    }
+    al_destroy_bitmap(fundo);
+    al_destroy_bitmap(frente1);
+    al_destroy_bitmap(frente2);
+    al_destroy_bitmap(frente3);
+    al_destroy_bitmap(frente4);
+    al_destroy_bitmap(fade);
+    al_destroy_sample(abrirPorta);
+
+    acaoAnterior = 14;
     return 1;
 }
 int BanheiroSegundoAndar(){
@@ -283,12 +517,12 @@ int BanheiroSegundoAndar(){
             rafa.andando = false;
             rafa.correndo = false;
         }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -10) || (teclas[1] && teclas[4] && rafa.pos_x < 170))){
+        else if(((teclas[0] && teclas [4] && rafa.pos_x > 0) || (teclas[1] && teclas[4] && rafa.pos_x < 347))){
             rafa.andando = false;
             rafa.correndo = true;
             rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
         }
-        else if(((teclas[0] && rafa.pos_x > -10) || (teclas[1] && rafa.pos_x < 170))){
+        else if(((teclas[0] && rafa.pos_x > 0) || (teclas[1] && rafa.pos_x < 347))){
             rafa.andando = true;
             rafa.correndo = false;
             rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
@@ -320,7 +554,7 @@ int BanheiroSegundoAndar(){
         else{
             rafa.cont_frames++;
         }
-        if(rafa.pos_x>-20 && rafa.pos_x<30){
+        if(rafa.pos_x>-50 && rafa.pos_x<10){
             if(teclas[2]){
                 if(!fim){
                     al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
@@ -329,7 +563,7 @@ int BanheiroSegundoAndar(){
                 acao = 5;
             }
             emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "Corredor do segundo andar");
+            strcpy(salaDaPortaS, "Corredor");
         }
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
@@ -375,7 +609,6 @@ int BanheiroSegundoAndar(){
             al_draw_bitmap(fade,0,0,0);
             al_rest(3);
         }
-
         al_flip_display();
         if(obterTempo()< 1.0/FPS){
             al_rest((1.0/FPS)-obterTempo());
@@ -833,23 +1066,29 @@ int CorredorSegundoAndar(int veioDeOnde){
     ALLEGRO_BITMAP *fade = NULL;
     ALLEGRO_SAMPLE *abrirPorta = NULL;
     ALLEGRO_SAMPLE *passosEscada = NULL;
+    ALLEGRO_SAMPLE *macaneta = NULL;
     ALLEGRO_TRANSFORM camera;
     fundo = al_load_bitmap("imgs/corredor2Andar/Corredor2AndarFundo.png");
     frente = al_load_bitmap("imgs/corredor2Andar/Corredor2AndarFrente.png");
     fade = al_load_bitmap("imgs/efeitos/fade.png");
     abrirPorta = al_load_sample("sons/portaAbrindoFechando.wav");
     passosEscada = al_load_sample("sons/footstepInStairs.wav");
+    macaneta = al_load_sample("sons/doorHandle.wav");
     struct personagem rafa;
     iniciaRafa(&rafa);
 
     enum posicoes {RIGHT, LEFT};
 
     int fadeOpacidade = 255;
+    int fadeFala = 0;
+    int timerFala = 0;
     int opacidadeEmUmaEntradaS = 0;
     int opacidadeEmUmaEntradaI = 0;
+    int timerMacaneta = 0;
     float cameraPosition = 0;
     char salaDaPortaS[50];
     char salaDaPortaI[50];
+    char falaRafa[50];
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -860,10 +1099,19 @@ int CorredorSegundoAndar(int veioDeOnde){
         rafa.pos_x = 10;
     }
     else if(veioDeOnde == 6){
-        rafa.pos_x = 740;
+        rafa.pos_x = 1910;
+    }
+    else if(veioDeOnde == 14){
+        rafa.pos_x = 2900;
     }
 
     while(!trocarCena && !sair){
+        if(timerMacaneta>0){
+            timerMacaneta--;
+        }
+        if(timerFala>0){
+            timerFala--;
+        }
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
@@ -978,6 +1226,14 @@ int CorredorSegundoAndar(int veioDeOnde){
         }
         else if(rafa.pos_x>700 && rafa.pos_x<830){
             if(teclas[2]){
+                if(timerMacaneta<=0){
+                    al_play_sample(macaneta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    timerMacaneta = 120;
+                }
+                if(timerFala <= 0){
+                    timerFala = 240;
+                    strcpy(falaRafa, "trancado...");
+                }
                 /*if(!fim){
                     al_play_sample(passosEscada,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
                 }
@@ -986,17 +1242,6 @@ int CorredorSegundoAndar(int veioDeOnde){
             }
             emUmaEntradaS = true;
             strcpy(salaDaPortaS, "-");
-        }
-        else if(rafa.pos_x>1170 && rafa.pos_x<1300){
-            if(teclas[2]){
-                /*if(!fim){
-                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                }
-                fim = true;
-                acao = 6;*/
-            }
-            emUmaEntradaI = true;
-            strcpy(salaDaPortaI, "-");
         }
         else if(rafa.pos_x>1840 && rafa.pos_x<1972){
             if(teclas[2]){
@@ -1007,10 +1252,49 @@ int CorredorSegundoAndar(int veioDeOnde){
                 acao = 6;
             }
             emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "Banheiro do segundo andar");
+            strcpy(salaDaPortaS, "Banheiro");
+        }
+        else if(rafa.pos_x>2500 && rafa.pos_x <2640){
+            if(teclas[2]){
+                if(timerMacaneta<=0){
+                    al_play_sample(macaneta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    timerMacaneta = 120;
+                }
+                if(timerFala <= 0){
+                    timerFala = 240;
+                    strcpy(falaRafa, "trancado...");
+                }
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "Quarto de hóspedes");
+        }
+        else if(rafa.pos_x>2900 && rafa.pos_x <3000){
+            if(teclas[2]){
+                if(!fim){
+                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                }
+                fim = true;
+                acao = 14;
+            }
+            emUmaEntradaS = true;
+            strcpy(salaDaPortaS, "Varanda");
+        }
+        if(rafa.pos_x>1170 && rafa.pos_x<1300){
+            if(teclas[3]){
+                if(timerMacaneta<=0){
+                    al_play_sample(macaneta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    timerMacaneta = 120;
+                }
+                if(timerFala <= 0){
+                    timerFala = 240;
+                    strcpy(falaRafa, "trancado...");
+                }
+            }
+            emUmaEntradaI = true;
+            strcpy(salaDaPortaI, "-");
         }
         else if(rafa.pos_x>2150 && rafa.pos_x<2280){
-            if(teclas[2]){
+            if(teclas[3]){
                 /*if(!fim){
                     al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
                 }
@@ -1021,17 +1305,6 @@ int CorredorSegundoAndar(int veioDeOnde){
             strcpy(salaDaPortaI, "Quarto de Casal");
         }
 
-        if(rafa.pos_x>2500 && rafa.pos_x <2640){
-            if(teclas[2]){
-                /*if(!fim){
-                    al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                }
-                fim = true;
-                acao = 7;*/
-            }
-            emUmaEntradaS = true;
-            strcpy(salaDaPortaS, "Quarto de hóspedes");
-        }
         atualizaCamera(&cameraPosition, rafa.pos_x,rafa.larguraSprite);
         al_identity_transform(&camera);
         al_translate_transform(&camera, -cameraPosition,0);
@@ -1064,6 +1337,15 @@ int CorredorSegundoAndar(int veioDeOnde){
         else{
             opacidadeEmUmaEntradaI = 0;
         }
+        if(timerFala>0){
+            if(fadeFala<255){
+                fadeFala+=5;
+            }
+            al_draw_textf(pixelFontPequena,al_map_rgb(fadeFala,fadeFala,fadeFala),rafa.pos_x+50,rafa.pos_y -20,ALLEGRO_ALIGN_CENTER,"%s",falaRafa);
+        }
+        else if(fadeFala > 0){
+            fadeFala = 0;
+        }
         al_draw_bitmap(frente,0,0,0);
         if(inicio){
             if(fadeOpacidade>0){
@@ -1092,7 +1374,6 @@ int CorredorSegundoAndar(int veioDeOnde){
             al_draw_bitmap(fade,0,0,0);
             al_rest(3);
         }
-        al_draw_textf(pixelFont,al_map_rgb(255,255,255),rafa.pos_x+50,rafa.pos_y -100,ALLEGRO_ALIGN_CENTER,"%f",rafa.pos_x);
         al_flip_display();
         if(obterTempo()< 1.0/FPS){
             al_rest((1.0/FPS)-obterTempo());
@@ -1108,6 +1389,7 @@ int CorredorSegundoAndar(int veioDeOnde){
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
     al_destroy_sample(passosEscada);
+    al_destroy_sample(macaneta);
     acaoAnterior = 5;
     return 1;
 }
@@ -1123,12 +1405,14 @@ int Hall(int veioDeOnde){
     ALLEGRO_BITMAP *fade = NULL;
     ALLEGRO_SAMPLE *abrirPorta = NULL;
     ALLEGRO_SAMPLE *passosEscada = NULL;
+    ALLEGRO_SAMPLE *macaneta = NULL;
     ALLEGRO_TRANSFORM camera;
     fundo = al_load_bitmap("imgs/hall/HallFundo.png");
     frente = al_load_bitmap("imgs/hall/HallFrente.png");
     fade = al_load_bitmap("imgs/efeitos/fade.png");
     abrirPorta = al_load_sample("sons/portaAbrindoFechando.wav");
     passosEscada = al_load_sample("sons/footstepInStairs.wav");
+    macaneta = al_load_sample("sons/doorHandle.wav");
     struct personagem rafa;
     iniciaRafa(&rafa);
 
@@ -1386,6 +1670,7 @@ int Hall(int veioDeOnde){
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
     al_destroy_sample(passosEscada);
+    al_destroy_sample(macaneta);
     acaoAnterior = 2;
     return 1;
 }
@@ -1672,16 +1957,63 @@ int HallAnim(){
     return 1;
 }
 int Menu(){
-    ALLEGRO_BITMAP *fundoMenu = NULL;
+    ALLEGRO_BITMAP *fundoMenu1_1 = NULL;
+    ALLEGRO_BITMAP *fundoMenu1_2 = NULL;
+    ALLEGRO_BITMAP *fundoMenu1_3 = NULL;
+    ALLEGRO_BITMAP *fundoMenu1_4 = NULL;
+
+    ALLEGRO_BITMAP *fundoMenu2_1 = NULL;
+    ALLEGRO_BITMAP *fundoMenu2_2 = NULL;
+    ALLEGRO_BITMAP *fundoMenu2_3 = NULL;
+    ALLEGRO_BITMAP *fundoMenu2_4 = NULL;
+
+    ALLEGRO_BITMAP *fundoMenu3_1 = NULL;
+    ALLEGRO_BITMAP *fundoMenu3_2 = NULL;
+    ALLEGRO_BITMAP *fundoMenu3_3 = NULL;
+    ALLEGRO_BITMAP *fundoMenu3_4 = NULL;
+
+    ALLEGRO_BITMAP *fundoMenu4_1 = NULL;
+    ALLEGRO_BITMAP *fundoMenu4_2 = NULL;
+    ALLEGRO_BITMAP *fundoMenu4_3 = NULL;
+    ALLEGRO_BITMAP *fundoMenu4_4 = NULL;
+
+    ALLEGRO_BITMAP *fundoMenu5_1 = NULL;
+    ALLEGRO_BITMAP *fundoMenu5_2 = NULL;
+    ALLEGRO_BITMAP *fundoMenu5_3 = NULL;
+    ALLEGRO_BITMAP *fundoMenu5_4 = NULL;
+
     ALLEGRO_BITMAP *fade = NULL;
     ALLEGRO_AUDIO_STREAM *musicaMenu = NULL;
-    ALLEGRO_SAMPLE *chuva = NULL;
     ALLEGRO_SAMPLE *porta = NULL;
+
+    fundoMenu1_1 = al_load_bitmap("imgs/menuPrincipal/normal/MenuPrincipal1.png");
+    fundoMenu1_2 = al_load_bitmap("imgs/menuPrincipal/normal/MenuPrincipal2.png");
+    fundoMenu1_3 = al_load_bitmap("imgs/menuPrincipal/normal/MenuPrincipal3.png");
+    fundoMenu1_4 = al_load_bitmap("imgs/menuPrincipal/normal/MenuPrincipal4.png");
+
+    fundoMenu2_1 = al_load_bitmap("imgs/menuPrincipal/comecar/MenuPrincipal1.png");
+    fundoMenu2_2 = al_load_bitmap("imgs/menuPrincipal/comecar/MenuPrincipal2.png");
+    fundoMenu2_3 = al_load_bitmap("imgs/menuPrincipal/comecar/MenuPrincipal3.png");
+    fundoMenu2_4 = al_load_bitmap("imgs/menuPrincipal/comecar/MenuPrincipal4.png");
+
+    fundoMenu3_1 = al_load_bitmap("imgs/menuPrincipal/continuar/MenuPrincipal1.png");
+    fundoMenu3_2 = al_load_bitmap("imgs/menuPrincipal/continuar/MenuPrincipal2.png");
+    fundoMenu3_3 = al_load_bitmap("imgs/menuPrincipal/continuar/MenuPrincipal3.png");
+    fundoMenu3_4 = al_load_bitmap("imgs/menuPrincipal/continuar/MenuPrincipal4.png");
+
+    fundoMenu4_1 = al_load_bitmap("imgs/menuPrincipal/configurar/MenuPrincipal1.png");
+    fundoMenu4_2 = al_load_bitmap("imgs/menuPrincipal/configurar/MenuPrincipal2.png");
+    fundoMenu4_3 = al_load_bitmap("imgs/menuPrincipal/configurar/MenuPrincipal3.png");
+    fundoMenu4_4 = al_load_bitmap("imgs/menuPrincipal/configurar/MenuPrincipal4.png");
+
+    fundoMenu5_1 = al_load_bitmap("imgs/menuPrincipal/sair/MenuPrincipal1.png");
+    fundoMenu5_2 = al_load_bitmap("imgs/menuPrincipal/sair/MenuPrincipal2.png");
+    fundoMenu5_3 = al_load_bitmap("imgs/menuPrincipal/sair/MenuPrincipal3.png");
+    fundoMenu5_4 = al_load_bitmap("imgs/menuPrincipal/sair/MenuPrincipal4.png");
+
     musicaMenu = al_load_audio_stream("musicas/RascalMenu.ogg",4,1024);
     porta = al_load_sample("sons/doorMenu.wav");
-    chuva = al_load_sample("sons/rainMenu.wav");
     fade = al_load_bitmap("imgs/efeitos/fade.png");
-    al_play_sample(chuva,0.5,0.5,1.0,ALLEGRO_PLAYMODE_LOOP,NULL);
     al_attach_audio_stream_to_mixer(musicaMenu,al_get_default_mixer());
     al_set_audio_stream_playmode(musicaMenu, ALLEGRO_PLAYMODE_LOOP);
 
@@ -1703,7 +2035,7 @@ int Menu(){
             else if(evento.type == ALLEGRO_EVENT_MOUSE_AXES){
                 if(evento.mouse.x >500 && evento.mouse.x < 700 && evento.mouse.y > 200 && evento.mouse.y < 300){
                     selecionado = 1;
-                    if(tocandoCount >=120){
+                    if(tocandoCount >=240){
                         tocandoCount = 0;
                         tocando = false;
                     }
@@ -1737,78 +2069,77 @@ int Menu(){
                 }
             }
         }
+        al_clear_to_color(al_map_rgb(0,0,0));
         if(selecionado == 0){
-            if(frames >=0 && frames <3){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/normal/MenuPrincipal1.png");
+            if(frames >=0 && frames <=3){
+                al_draw_bitmap(fundoMenu1_1,0,0,0);
             }
-            else if(frames<6){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/normal/MenuPrincipal2.png");
+            else if(frames<=6){
+                al_draw_bitmap(fundoMenu1_2,0,0,0);
             }
-            else if(frames<9){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/normal/MenuPrincipal3.png");
+            else if(frames<=9){
+                al_draw_bitmap(fundoMenu1_3,0,0,0);
             }
-            else if(frames<12){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/normal/MenuPrincipal4.png");
+            else if(frames<=12){
+                al_draw_bitmap(fundoMenu1_4,0,0,0);
             }
         }
         else if(selecionado == 1){
-            if(frames >=0 && frames <3){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/comecar/MenuPrincipal1.png");
+            if(frames >=0 && frames <=3){
+                al_draw_bitmap(fundoMenu2_1,0,0,0);
             }
-            else if(frames<6){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/comecar/MenuPrincipal2.png");
+            else if(frames<=6){
+                al_draw_bitmap(fundoMenu2_2,0,0,0);
             }
-            else if(frames<9){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/comecar/MenuPrincipal3.png");
+            else if(frames<=9){
+                al_draw_bitmap(fundoMenu2_3,0,0,0);
             }
-            else if(frames<12){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/comecar/MenuPrincipal4.png");
+            else if(frames<=12){
+                al_draw_bitmap(fundoMenu2_4,0,0,0);
             }
         }
         else if(selecionado == 2){
-            if(frames >=0 && frames <3){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/continuar/MenuPrincipal1.png");
+            if(frames >=0 && frames <=3){
+                al_draw_bitmap(fundoMenu3_1,0,0,0);
             }
-            else if(frames<6){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/continuar/MenuPrincipal2.png");
+            else if(frames<=6){
+                al_draw_bitmap(fundoMenu3_2,0,0,0);
             }
-            else if(frames<9){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/continuar/MenuPrincipal3.png");
+            else if(frames<=9){
+                al_draw_bitmap(fundoMenu3_3,0,0,0);
             }
-            else if(frames<12){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/continuar/MenuPrincipal4.png");
+            else if(frames<=12){
+                al_draw_bitmap(fundoMenu3_4,0,0,0);
             }
         }
         else if(selecionado == 3){
-            if(frames >=0 && frames <3){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/configurar/MenuPrincipal1.png");
+            if(frames >=0 && frames <=3){
+                al_draw_bitmap(fundoMenu4_1,0,0,0);
             }
-            else if(frames<6){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/configurar/MenuPrincipal2.png");
+            else if(frames<=6){
+                al_draw_bitmap(fundoMenu4_2,0,0,0);
             }
-            else if(frames<9){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/configurar/MenuPrincipal3.png");
+            else if(frames<=9){
+                al_draw_bitmap(fundoMenu4_3,0,0,0);
             }
-            else if(frames<12){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/configurar/MenuPrincipal4.png");
+            else if(frames<=12){
+                al_draw_bitmap(fundoMenu4_4,0,0,0);
             }
         }
         else if(selecionado == 4){
-            if(frames >=0 && frames <3){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/sair/MenuPrincipal1.png");
+            if(frames >=0 && frames <=3){
+                al_draw_bitmap(fundoMenu5_1,0,0,0);
             }
-            else if(frames<6){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/sair/MenuPrincipal2.png");
+            else if(frames<=6){
+                al_draw_bitmap(fundoMenu5_2,0,0,0);
             }
-            else if(frames<9){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/sair/MenuPrincipal3.png");
+            else if(frames<=9){
+                al_draw_bitmap(fundoMenu5_3,0,0,0);
             }
-            else if(frames<12){
-                fundoMenu = al_load_bitmap("imgs/menuPrincipal/sair/MenuPrincipal4.png");
+            else if(frames<=12){
+                al_draw_bitmap(fundoMenu5_4,0,0,0);
             }
         }
-        al_clear_to_color(al_map_rgb(0,0,0));
-        al_draw_bitmap(fundoMenu,0,0,0);
         al_draw_text(pixelFontTitle,al_map_rgb(0,0,0),600,30,ALLEGRO_ALIGN_CENTER,"EIJ Escape");
         if(fadeOpacidade>0&&entrando == false){
             al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
@@ -1823,22 +2154,45 @@ int Menu(){
             trocarCena = true;
         }
         al_flip_display();
-        if(tocando == true && tocandoCount<120){
+        if(tocando == true && tocandoCount<240){
             tocandoCount++;
         }
-        if(frames<11){
+        if(frames<12){
             frames++;
         }
         else{
-            frames = 0;
+            frames=0;
         }
         if(obterTempo()< 1.0/FPS){
             al_rest((1.0/FPS)-obterTempo());
         }
-        al_destroy_bitmap(fundoMenu);
     }
+    al_destroy_bitmap(fundoMenu1_1);
+    al_destroy_bitmap(fundoMenu1_2);
+    al_destroy_bitmap(fundoMenu1_3);
+    al_destroy_bitmap(fundoMenu1_4);
+
+    al_destroy_bitmap(fundoMenu2_1);
+    al_destroy_bitmap(fundoMenu2_2);
+    al_destroy_bitmap(fundoMenu2_3);
+    al_destroy_bitmap(fundoMenu2_4);
+
+    al_destroy_bitmap(fundoMenu3_1);
+    al_destroy_bitmap(fundoMenu3_2);
+    al_destroy_bitmap(fundoMenu3_3);
+    al_destroy_bitmap(fundoMenu3_4);
+
+    al_destroy_bitmap(fundoMenu4_1);
+    al_destroy_bitmap(fundoMenu4_2);
+    al_destroy_bitmap(fundoMenu4_3);
+    al_destroy_bitmap(fundoMenu4_4);
+
+    al_destroy_bitmap(fundoMenu5_1);
+    al_destroy_bitmap(fundoMenu5_2);
+    al_destroy_bitmap(fundoMenu5_3);
+    al_destroy_bitmap(fundoMenu5_4);
+
     al_destroy_bitmap(fade);
-    al_destroy_sample(chuva);
     al_destroy_audio_stream(musicaMenu);
     return 1;
 }
@@ -2016,7 +2370,7 @@ int init(){
         destroi();
         return -1;
     }
-    chuvaPadrao = al_load_sample("sons/rainBackground.wav");
+    chuvaPadrao = al_load_sample("sons/rain.wav");
     if(!chuvaPadrao){
         erroMsg("Algo deu errado ao carregar um sample");
         destroi();
