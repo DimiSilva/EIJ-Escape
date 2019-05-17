@@ -36,8 +36,8 @@ ALLEGRO_FONT *pixelFontTitle = NULL;
 
 bool sair = false;
 bool trocarCena = false;
-int acao = 2;
-int acaoAnterior = 1;
+int acao = 0;
+int acaoAnterior = 0;
 
 double tempoInicial = 0;
 //fim variaveis e ponteiros
@@ -75,6 +75,8 @@ void erroMsg(char *texto);
 
 void iniciaTimer();
 double obterTempo();
+
+int filaPadrao(bool teclas[]);
 //fim funcoes
 
 //structs e funcoes de inicialização de personagem
@@ -273,93 +275,8 @@ int QuartoYuka(){
     while(!trocarCena && !sair){
         iniciaTimer();
         emUmaEntradaI = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -20) || (teclas[1] && teclas[4] && rafa.pos_x < 1120))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -20) || (teclas[1] && rafa.pos_x < 1120))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>500 && rafa.pos_x<600){
             if(teclas[3]){
                 if(!fim){
@@ -415,7 +332,6 @@ int QuartoYuka(){
             al_draw_bitmap(fade,0,0,0);
             al_rest(3);
         }
-        al_draw_textf(pixelFont,al_map_rgb(255,255,255),rafa.pos_x+50,rafa.pos_y -100,ALLEGRO_ALIGN_CENTER,"%f",rafa.pos_x);
         al_flip_display();
         if(obterTempo()< 1.0/FPS){
             al_rest((1.0/FPS)-obterTempo());
@@ -459,93 +375,8 @@ int banheiroQuartoCasal(){
         if(timerEscondido>0){
             timerEscondido--;
         }
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -10) || (teclas[1] && teclas[4] && rafa.pos_x < 400))&& !escondido){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -10) || (teclas[1] && rafa.pos_x < 400)) && !escondido){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadraoComEscondido(&rafa,-10,400,teclas,&escondido);
         if(rafa.pos_x>360 && rafa.pos_x<500){
             if(teclas[2]){
                 if(!escondido && timerEscondido <= 0){
@@ -683,93 +514,8 @@ int QuartoCasal(int veioDeOnde){
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -20) || (teclas[1] && teclas[4] && rafa.pos_x < 1120))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -20) || (teclas[1] && rafa.pos_x < 1120))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>970 && rafa.pos_x<1090){
             if(teclas[2]){
                 if(!fim){
@@ -880,93 +626,8 @@ int QuartoHospedes(){
     while(!trocarCena && !sair){
         iniciaTimer();
         emUmaEntradaS = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -20) || (teclas[1] && teclas[4] && rafa.pos_x < 1120))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -20) || (teclas[1] && rafa.pos_x < 1120))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>1100 && rafa.pos_x<1200){
             if(teclas[2]){
                 fim = true;
@@ -1070,93 +731,8 @@ int Varanda(int veioDeOnde){
     while(!trocarCena && !sair){
         iniciaTimer();
         emUmaEntradaS = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > 145) || (teclas[1] && teclas[4] && rafa.pos_x < 959))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > 145) || (teclas[1] && rafa.pos_x < 959))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,145,959,teclas);
         if(rafa.pos_x>450 && rafa.pos_x<650){
             if(teclas[2]){
                 if(!fim){
@@ -1276,93 +852,8 @@ int BanheiroSegundoAndar(){
     while(!trocarCena && !sair){
         iniciaTimer();
         emUmaEntradaS = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > 0) || (teclas[1] && teclas[4] && rafa.pos_x < 347))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > 0) || (teclas[1] && rafa.pos_x < 347))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,0,347,teclas);
         if(rafa.pos_x>-50 && rafa.pos_x<10){
             if(teclas[2]){
                 if(!fim){
@@ -1459,93 +950,8 @@ int Cozinha(){
         if(timerEscondido>0){
             timerEscondido--;
         }
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -10) || (teclas[1] && teclas[4] && rafa.pos_x < 1110))&& !escondido){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -10) || (teclas[1] && rafa.pos_x < 1110)) && !escondido){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadraoComEscondido(&rafa,-20,1120,teclas,&escondido);
         if(rafa.pos_x>170 && rafa.pos_x<300){
             if(teclas[2]){
                 if(!escondido && timerEscondido <= 0){
@@ -1679,93 +1085,8 @@ int BanheiroPrimeiroAndar(){
         if(timerEscondido>0){
             timerEscondido--;
         }
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -10) || (teclas[1] && teclas[4] && rafa.pos_x < 170))&& !escondido){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -10) || (teclas[1] && rafa.pos_x < 170)) && !escondido){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadraoComEscondido(&rafa,-10,170,teclas,&escondido);
         if(rafa.pos_x>150 && rafa.pos_x<251){
             if(teclas[2]){
                 if(!escondido && timerEscondido <= 0){
@@ -1918,93 +1239,8 @@ int CorredorSegundoAndar1(int veioDeOnde){
         }
         iniciaTimer();
         emUmaEntradaS = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if((teclas[0] && teclas [4] && rafa.pos_x > 2) || (teclas[1] && teclas[4] && rafa.pos_x < 2908)){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if((teclas[0] && rafa.pos_x > 2) || (teclas[1] && rafa.pos_x < 2908)){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,2,2908,teclas);
         if(rafa.pos_x>0 && rafa.pos_x<20){
             if(teclas[2]){
                 if(!fim){
@@ -2196,93 +1432,8 @@ int CorredorSegundoAndar(int veioDeOnde){
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if((teclas[0] && teclas [4] && rafa.pos_x > 2) || (teclas[1] && teclas[4] && rafa.pos_x < 2908)){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if((teclas[0] && rafa.pos_x > 2) || (teclas[1] && rafa.pos_x < 2908)){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,2,2908,teclas);
         if(rafa.pos_x>0 && rafa.pos_x<100){
             if(teclas[2]){
                 if(!fim){
@@ -2504,93 +1655,8 @@ int CorredorPrimeiroAndar(int veioDeOnde){
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -20) || (teclas[1] && teclas[4] && rafa.pos_x < 1120))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -20) || (teclas[1] && rafa.pos_x < 1120))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>-50 && rafa.pos_x<20){
             if(teclas[2]){
                 if(!fim){
@@ -2715,93 +1781,8 @@ int Biblioteca(int veioDeOnde){
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -20) || (teclas[1] && teclas[4] && rafa.pos_x < 1120))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -20) || (teclas[1] && rafa.pos_x < 1120))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>480 && rafa.pos_x<610){
             if(teclas[3]){
                 if(!fim){
@@ -2925,93 +1906,8 @@ int Escritorio(int veioDeOnde){
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -20) || (teclas[1] && teclas[4] && rafa.pos_x < 1120))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -20) || (teclas[1] && rafa.pos_x < 1120))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>225 && rafa.pos_x<355){
             if(teclas[3]){
                 if(!fim){
@@ -3136,93 +2032,8 @@ int SalaDeJantar(int veioDeOnde){
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(((teclas[0] && teclas [4] && rafa.pos_x > -20) || (teclas[1] && teclas[4] && rafa.pos_x < 1120))){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if(((teclas[0] && rafa.pos_x > -20) || (teclas[1] && rafa.pos_x < 1120))){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>65 && rafa.pos_x<195){
             if(teclas[2]){
                 if(!fim){
@@ -3366,93 +2177,8 @@ int Hall(int veioDeOnde){
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
-        while(!al_event_queue_is_empty(filaDeEvento)){
-            ALLEGRO_EVENT evento;
-            al_wait_for_event(filaDeEvento, &evento);
-
-            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
-                sair = true;
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = false;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = false;
-                }
-            }
-            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-                if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
-                    teclas[0] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
-                    teclas[1] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
-                    teclas[2] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
-                    teclas[3] = true;
-                }
-                else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
-                    teclas[4] = true;
-                }
-            }
-        }
-        if(!teclas[0] && !teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if(teclas[0] && teclas[1]){
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        else if((teclas[0] && teclas [4] && rafa.pos_x > 2) || (teclas[1] && teclas[4] && rafa.pos_x < 2908)){
-            rafa.andando = false;
-            rafa.correndo = true;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else if((teclas[0] && rafa.pos_x > 2) || (teclas[1] && rafa.pos_x < 2908)){
-            rafa.andando = true;
-            rafa.correndo = false;
-            rafa.inverte_sprite = teclas[0]?LEFT:RIGHT;
-        }
-        else{
-            rafa.andando = false;
-            rafa.correndo = false;
-        }
-        if(rafa.correndo || rafa.andando){
-            rafa.velocidade = rafa.correndo?6:3;
-            rafa.linha_atual = rafa.correndo?2:1;
-            rafa.frames_sprite = 6;
-            rafa.colunas_sprite = 8;
-            rafa.pos_x = rafa.inverte_sprite == LEFT?rafa.pos_x-rafa.velocidade:rafa.pos_x + rafa.velocidade;
-        }
-        else {
-            rafa.velocidade = 0;
-            rafa.linha_atual = 0;
-            rafa.frames_sprite = 25;
-            rafa.colunas_sprite = 5;
-            if(rafa.coluna_atual>4){
-                rafa.coluna_atual = 0;
-            }
-        }
-        if(rafa.cont_frames > rafa.frames_sprite){
-            rafa.cont_frames = 0;
-            rafa.coluna_atual = (rafa.coluna_atual+1) % rafa.colunas_sprite;
-        }
-        else{
-            rafa.cont_frames++;
-        }
+        filaPadrao(teclas);
+        movimentoPadrao(&rafa,2,2908,teclas);
         if(rafa.pos_x>-10 && rafa.pos_x<10){
             if(teclas[2]){
                 if(!fim){
@@ -4300,4 +3026,145 @@ int init(){
     al_register_event_source(filaDeEvento, al_get_keyboard_event_source());
     al_register_event_source(filaDeEvento, al_get_mouse_event_source());
     return 1;
+}
+int filaPadrao(bool teclas[]){
+    while(!al_event_queue_is_empty(filaDeEvento)){
+        ALLEGRO_EVENT evento;
+        al_wait_for_event(filaDeEvento, &evento);
+
+        if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
+            sair = true;
+        }
+        else if(evento.type == ALLEGRO_EVENT_KEY_UP){
+            if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
+                teclas[0] = false;
+            }
+            else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
+                teclas[1] = false;
+            }
+            else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                teclas[2] = false;
+            }
+            else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                teclas[3] = false;
+            }
+            else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
+                teclas[4] = false;
+            }
+        }
+        else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
+            if(evento.keyboard.keycode == ALLEGRO_KEY_LEFT || evento.keyboard.keycode == ALLEGRO_KEY_A){
+                teclas[0] = true;
+            }
+            else if(evento.keyboard.keycode == ALLEGRO_KEY_RIGHT || evento.keyboard.keycode == ALLEGRO_KEY_D){
+                teclas[1] = true;
+            }
+            else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                teclas[2] = true;
+            }
+            else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                teclas[3] = true;
+            }
+            else if(evento.keyboard.keycode == ALLEGRO_KEY_LSHIFT){
+                teclas[4] = true;
+            }
+        }
+    }
+    return 1;
+}
+int movimentoPadrao(struct personagem *rafa,int comodoLimMin,int comodoLimMax, bool teclas[]){
+    enum posicoes {RIGHT, LEFT};
+    if(!teclas[0] && !teclas[1]){
+        rafa->andando = false;
+        rafa->correndo = false;
+    }
+    else if(teclas[0] && teclas[1]){
+        rafa->andando = false;
+        rafa->correndo = false;
+    }
+    else if(((teclas[0] && teclas [4] && rafa->pos_x > comodoLimMin) || (teclas[1] && teclas[4] && rafa->pos_x < comodoLimMax))){
+        rafa->andando = false;
+        rafa->correndo = true;
+        rafa->inverte_sprite = teclas[0]?LEFT:RIGHT;
+    }
+    else if(((teclas[0] && rafa->pos_x > comodoLimMin) || (teclas[1] && rafa->pos_x < comodoLimMax))){
+        rafa->andando = true;
+        rafa->correndo = false;
+        rafa->inverte_sprite = teclas[0]?LEFT:RIGHT;
+    }
+    else{
+        rafa->andando = false;
+        rafa->correndo = false;
+    }
+    if(rafa->correndo || rafa->andando){
+        rafa->velocidade = rafa->correndo?6:3;
+        rafa->linha_atual = rafa->correndo?2:1;
+        rafa->frames_sprite = 6;
+        rafa->colunas_sprite = 8;
+        rafa->pos_x = rafa->inverte_sprite == LEFT?rafa->pos_x-rafa->velocidade:rafa->pos_x + rafa->velocidade;
+    }
+    else {
+        rafa->velocidade = 0;
+        rafa->linha_atual = 0;
+        rafa->frames_sprite = 25;
+        rafa->colunas_sprite = 5;
+        if(rafa->coluna_atual>4){
+            rafa->coluna_atual = 0;
+        }
+    }
+    if(rafa->cont_frames > rafa->frames_sprite){
+        rafa->cont_frames = 0;
+        rafa->coluna_atual = (rafa->coluna_atual+1) % rafa->colunas_sprite;
+    }
+    else{
+        rafa->cont_frames++;
+    }
+}
+int movimentoPadraoComEscondido(struct personagem *rafa,int comodoLimMin,int comodoLimMax, bool teclas[], bool *escondido){
+    enum posicoes {RIGHT, LEFT};
+    if(!teclas[0] && !teclas[1]){
+        rafa->andando = false;
+        rafa->correndo = false;
+    }
+    else if(teclas[0] && teclas[1]){
+        rafa->andando = false;
+        rafa->correndo = false;
+    }
+    else if(((teclas[0] && teclas [4] && rafa->pos_x > comodoLimMin) || (teclas[1] && teclas[4] && rafa->pos_x < comodoLimMax))&&!*escondido){
+        rafa->andando = false;
+        rafa->correndo = true;
+        rafa->inverte_sprite = teclas[0]?LEFT:RIGHT;
+    }
+    else if(((teclas[0] && rafa->pos_x > comodoLimMin) || (teclas[1] && rafa->pos_x < comodoLimMax))&&!*escondido){
+        rafa->andando = true;
+        rafa->correndo = false;
+        rafa->inverte_sprite = teclas[0]?LEFT:RIGHT;
+    }
+    else{
+        rafa->andando = false;
+        rafa->correndo = false;
+    }
+    if(rafa->correndo || rafa->andando){
+        rafa->velocidade = rafa->correndo?6:3;
+        rafa->linha_atual = rafa->correndo?2:1;
+        rafa->frames_sprite = 6;
+        rafa->colunas_sprite = 8;
+        rafa->pos_x = rafa->inverte_sprite == LEFT?rafa->pos_x-rafa->velocidade:rafa->pos_x + rafa->velocidade;
+    }
+    else {
+        rafa->velocidade = 0;
+        rafa->linha_atual = 0;
+        rafa->frames_sprite = 25;
+        rafa->colunas_sprite = 5;
+        if(rafa->coluna_atual>4){
+            rafa->coluna_atual = 0;
+        }
+    }
+    if(rafa->cont_frames > rafa->frames_sprite){
+        rafa->cont_frames = 0;
+        rafa->coluna_atual = (rafa->coluna_atual+1) % rafa->colunas_sprite;
+    }
+    else{
+        rafa->cont_frames++;
+    }
 }
