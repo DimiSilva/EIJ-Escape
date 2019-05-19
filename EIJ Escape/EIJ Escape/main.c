@@ -21,26 +21,44 @@ const int ALTURA_JANELA = 600;
 
 //variaveis e ponteiros
 ALLEGRO_DISPLAY *janela = NULL;
+
 ALLEGRO_EVENT_QUEUE *filaDeEvento = NULL;
+
 ALLEGRO_TIMER *timer = NULL;
+
 ALLEGRO_BITMAP *spriteRafa = NULL;
 ALLEGRO_BITMAP *spriteIlan = NULL;
 ALLEGRO_BITMAP *spriteLarissa = NULL;
 ALLEGRO_BITMAP *spriteYuka = NULL;
 ALLEGRO_BITMAP *icone = NULL;
+
 ALLEGRO_SAMPLE *chuvaPadrao = NULL;
+ALLEGRO_SAMPLE *yukaBackground = NULL;
+ALLEGRO_SAMPLE *gritoMorte = NULL;
+ALLEGRO_SAMPLE *dying1 = NULL;
+ALLEGRO_SAMPLE *dying2 = NULL;
+ALLEGRO_SAMPLE *dying3 = NULL;
+
+ALLEGRO_SAMPLE_ID idYukaBackground;
 ALLEGRO_SAMPLE_ID idChuva;
+
 ALLEGRO_FONT *pixelFontPequena = NULL;
 ALLEGRO_FONT *pixelFont = NULL;
 ALLEGRO_FONT *pixelFontTitle = NULL;
 
+bool fimDeJogo = false;
 bool sair = false;
 bool trocarCena = false;
 bool chuvaBaixa = false;
 bool chuvaAlta = false;
-int eventos[5] = {0,0,0,0,0};
-int acao = 0;
-int acaoAnterior = 0;
+bool yukaBackgroundSom = false;
+bool yukaPerseguindo = false;
+int timerYukaEntrar = 0;
+int fugaYuka = 0;
+
+int eventos[5] = {0,1,0,0,0};
+int acao = 6;
+int acaoAnterior = 7;
 
 double tempoInicial = 0;
 
@@ -81,6 +99,7 @@ void erroMsg(char *texto);
 
 void iniciaTimer();
 double obterTempo();
+int temporizaDistancia(int pos1,int pos2);
 
 int filaPadrao(bool teclas[]);
 int movimentoPadrao();
@@ -166,7 +185,7 @@ void iniciaYuka(struct personagem *h){
     h->larguraSprite = 160;
     h->regiaoXdaFolha = 0;
     h->regiaoYdaFolha = 0;
-    h->frames_sprite = 8;
+    h->frames_sprite = 4;
     h->cont_frames = 0;
     h->colunas_sprite = 8;
     h->coluna_atual = 0;
@@ -186,6 +205,31 @@ struct personagem yukaGlobal;
 int main(){
     init();
     while(!sair){
+        if(fimDeJogo){
+            al_play_sample(dying1,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+            al_play_sample(dying2,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+            al_play_sample(dying3,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+            acao = 0;
+            acaoAnterior = 0;
+            yukaPerseguindo = false;
+            chuvaAlta = false;
+            chuvaBaixa = false;
+            eventos[0] = 0;
+            eventos[1] = 0;
+            eventos[2] = 0;
+            eventos[3] = 0;
+            eventos[4] = 0;
+            timerYukaEntrar = 0;
+            fugaYuka = 0;
+            fimDeJogo = false;
+            al_rest(7);
+        }
+        if(yukaPerseguindo){
+            fugaYuka++;
+        }
+        if(fugaYuka >= 3){
+            yukaPerseguindo = false;
+        }
         if(acao!=0&&acao!=14&&!chuvaBaixa){
             chuvaBaixa = true;
             if(chuvaAlta){
@@ -201,6 +245,18 @@ int main(){
             }
             al_stop_sample(&idChuva);
             al_play_sample(chuvaPadrao,0.9,0.5,1,ALLEGRO_PLAYMODE_LOOP,&idChuva);
+        }
+        if(yukaPerseguindo){
+            if(!yukaBackgroundSom){
+                al_play_sample(yukaBackground,1,0.5,1,ALLEGRO_PLAYMODE_LOOP,&idYukaBackground);
+                yukaBackgroundSom = true;
+            }
+        }
+        else{
+            if(yukaBackgroundSom){
+                al_stop_sample(&idYukaBackground);
+                yukaBackgroundSom = false;
+            }
         }
         while(!al_event_queue_is_empty(filaDeEvento)){
             ALLEGRO_EVENT evento;
@@ -289,16 +345,28 @@ int QuartoYuka(){
     int fadeOpacidade = 255;
     int opacidadeEmUmaEntradaI = 0;
     char salaDaPortaI[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaI = false;
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = LEFT;
     rafa.pos_x = 550;
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         iniciaTimer();
         emUmaEntradaI = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>500 && rafa.pos_x<600){
             if(teclas[3]){
@@ -314,6 +382,35 @@ int QuartoYuka(){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -365,6 +462,7 @@ int QuartoYuka(){
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
     acaoAnterior = 17;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int banheiroQuartoCasal(){
@@ -385,6 +483,7 @@ int banheiroQuartoCasal(){
     int opacidadeEmUmaEntradaS = 0;
     int timerEscondido = 0;
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool escondido = false;
     bool inicio = true;
     bool fim = false;
@@ -392,13 +491,24 @@ int banheiroQuartoCasal(){
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = RIGHT;
     rafa.pos_x = 20;
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         iniciaTimer();
         emUmaEntradaS = false;
         if(timerEscondido>0){
             timerEscondido--;
         }
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadraoComEscondido(&rafa,-10,400,teclas,&escondido);
         if(rafa.pos_x>360 && rafa.pos_x<500){
             if(teclas[2]){
@@ -438,6 +548,35 @@ int banheiroQuartoCasal(){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -500,6 +639,7 @@ int banheiroQuartoCasal(){
     al_destroy_sample(abrirPorta);
     al_destroy_sample(cortinaBanheiro);
     acaoAnterior = 16;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int QuartoCasal(int veioDeOnde){
@@ -519,6 +659,7 @@ int QuartoCasal(int veioDeOnde){
     int opacidadeEmUmaEntradaI = 0;
     char salaDaPortaI[50];
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -526,18 +667,28 @@ int QuartoCasal(int veioDeOnde){
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = RIGHT;
     rafa.pos_x = 1000;
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     if(veioDeOnde == 11){
         rafa.pos_x = 1100;
     }
     if(veioDeOnde == 16){
         rafa.pos_x = 805;
     }
-
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>970 && rafa.pos_x<1090){
             if(teclas[2]){
@@ -564,6 +715,35 @@ int QuartoCasal(int veioDeOnde){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -625,6 +805,7 @@ int QuartoCasal(int veioDeOnde){
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
     acaoAnterior = 15;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int QuartoHospedes(int veioDeOnde){
@@ -674,6 +855,7 @@ int QuartoHospedes(int veioDeOnde){
         emUmaEntradaI = false;
         emUmaEntradaS = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,-20,1120,teclas);
         if(eventos[0] != 0){
             if(larissa.andando || larissa.correndo){
@@ -1165,6 +1347,7 @@ int Varanda(int veioDeOnde){
     int fadeOpacidade = 255;
     int opacidadeEmUmaEntradaS = 0;
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -1176,11 +1359,21 @@ int Varanda(int veioDeOnde){
     else if(veioDeOnde == 13){
         rafa.pos_x = 830;
     }
-
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         iniciaTimer();
         emUmaEntradaS = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,145,959,teclas);
         if(rafa.pos_x>450 && rafa.pos_x<650){
             if(teclas[2]){
@@ -1210,6 +1403,35 @@ int Varanda(int veioDeOnde){
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
 
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -1278,7 +1500,7 @@ int Varanda(int veioDeOnde){
     al_destroy_bitmap(frente4);
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
-
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     acaoAnterior = 14;
     return 1;
 }
@@ -1297,16 +1519,28 @@ int BanheiroSegundoAndar(){
     int fadeOpacidade = 255;
     int opacidadeEmUmaEntradaS = 0;
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = RIGHT;
     rafa.pos_x = 20;
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         iniciaTimer();
         emUmaEntradaS = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,0,347,teclas);
         if(rafa.pos_x>-50 && rafa.pos_x<10){
             if(teclas[2]){
@@ -1322,6 +1556,35 @@ int BanheiroSegundoAndar(){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -1373,6 +1636,7 @@ int BanheiroSegundoAndar(){
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
     acaoAnterior = 12;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int Cozinha(){
@@ -1391,6 +1655,7 @@ int Cozinha(){
     int opacidadeEmUmaEntradaS = 0;
     int timerEscondido = 0;
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool escondido = false;
     bool inicio = true;
     bool fim = false;
@@ -1398,6 +1663,10 @@ int Cozinha(){
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = LEFT;
     rafa.pos_x = 1100;
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
         iniciaTimer();
         emUmaEntradaS = false;
@@ -1405,6 +1674,7 @@ int Cozinha(){
             timerEscondido--;
         }
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadraoComEscondido(&rafa,-20,1120,teclas,&escondido);
         if(rafa.pos_x>170 && rafa.pos_x<300){
             if(teclas[2]){
@@ -1442,6 +1712,35 @@ int Cozinha(){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         if(!escondido){
             al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
                 rafa.larguraSprite,rafa.alturaSprite,
@@ -1506,6 +1805,7 @@ int Cozinha(){
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
     acaoAnterior = 3;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int BanheiroPrimeiroAndar(){
@@ -1526,6 +1826,7 @@ int BanheiroPrimeiroAndar(){
     int opacidadeEmUmaEntradaS = 0;
     int timerEscondido = 0;
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool escondido = false;
     bool inicio = true;
     bool fim = false;
@@ -1533,6 +1834,10 @@ int BanheiroPrimeiroAndar(){
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = RIGHT;
     rafa.pos_x = 20;
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
         iniciaTimer();
         emUmaEntradaS = false;
@@ -1540,6 +1845,7 @@ int BanheiroPrimeiroAndar(){
             timerEscondido--;
         }
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadraoComEscondido(&rafa,-10,170,teclas,&escondido);
         if(rafa.pos_x>150 && rafa.pos_x<251){
             if(teclas[2]){
@@ -1579,6 +1885,35 @@ int BanheiroPrimeiroAndar(){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -1642,6 +1977,7 @@ int BanheiroPrimeiroAndar(){
     al_destroy_sample(abrirPorta);
     al_destroy_sample(cortinaBanheiro);
     acaoAnterior = 4;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int CorredorSegundoAndar1(int veioDeOnde){
@@ -1671,6 +2007,7 @@ int CorredorSegundoAndar1(int veioDeOnde){
     float cameraPosition = 0;
     char salaDaPortaS[50];
     char falaRafa[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -1683,14 +2020,24 @@ int CorredorSegundoAndar1(int veioDeOnde){
         rafa.pos_x = 2480;
         rafa.inverte_sprite = LEFT;
     }
-
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         if(timerMacaneta>0){
             timerMacaneta--;
         }
         iniciaTimer();
         emUmaEntradaS = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,2,2908,teclas);
         if(rafa.pos_x>0 && rafa.pos_x<20){
             if(teclas[2]){
@@ -1751,6 +2098,35 @@ int CorredorSegundoAndar1(int veioDeOnde){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -1825,6 +2201,7 @@ int CorredorSegundoAndar1(int veioDeOnde){
     al_destroy_sample(passosEscada);
     al_destroy_sample(macaneta);
     acaoAnterior = 5;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int CorredorSegundoAndar(int veioDeOnde){
@@ -1856,6 +2233,7 @@ int CorredorSegundoAndar(int veioDeOnde){
     float cameraPosition = 0;
     char salaDaPortaS[50];
     char salaDaPortaI[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -1877,8 +2255,17 @@ int CorredorSegundoAndar(int veioDeOnde){
     else if(veioDeOnde == 15){
         rafa.pos_x = 2215;
     }
-
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         if(timerMacaneta>0){
             timerMacaneta--;
         }
@@ -1886,7 +2273,9 @@ int CorredorSegundoAndar(int veioDeOnde){
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
-        movimentoPadrao(&rafa,2,2908,teclas);
+        if(!fim){
+            movimentoPadrao(&rafa,2,2908,teclas);
+        }
         if(rafa.pos_x>0 && rafa.pos_x<100){
             if(teclas[2]){
                 if(!fim){
@@ -1993,6 +2382,35 @@ int CorredorSegundoAndar(int veioDeOnde){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -2076,6 +2494,7 @@ int CorredorSegundoAndar(int veioDeOnde){
     al_destroy_sample(passosEscada);
     al_destroy_sample(macaneta);
     acaoAnterior = 5;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int CorredorPrimeiroAndar(int veioDeOnde){
@@ -2099,6 +2518,7 @@ int CorredorPrimeiroAndar(int veioDeOnde){
     int opacidadeEmUmaEntradaI = 0;
     char salaDaPortaI[50];
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -2113,11 +2533,22 @@ int CorredorPrimeiroAndar(int veioDeOnde){
         rafa.pos_x = 1120;
         rafa.inverte_sprite = LEFT;
     }
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>-50 && rafa.pos_x<20){
             if(teclas[2]){
@@ -2156,6 +2587,35 @@ int CorredorPrimeiroAndar(int veioDeOnde){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -2229,6 +2689,7 @@ int CorredorPrimeiroAndar(int veioDeOnde){
     al_destroy_sample(abrirPorta);
     al_destroy_sample(macaneta);
     acaoAnterior = 9;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int Biblioteca(int veioDeOnde){
@@ -2244,9 +2705,6 @@ int Biblioteca(int veioDeOnde){
     macaneta = al_load_sample("sons/doorHandle.wav");
     struct personagem rafa;
     iniciaRafa(&rafa);
-    if(eventos[1] != 0){
-        iniciaYuka(&yukaGlobal);
-    }
     enum posicoes {RIGHT, LEFT};
     int fadeOpacidade = 255;
     int fadeFala = 0;
@@ -2273,13 +2731,29 @@ int Biblioteca(int veioDeOnde){
         rafa.inverte_sprite = LEFT;
     }
     else if(veioDeOnde == 7){
+        iniciaYuka(&yukaGlobal);
+        yukaPerseguindo = true;
+        yukaBackgroundSom = true;
+        al_play_sample(yukaBackground,1,0.5,1,ALLEGRO_PLAYMODE_LOOP,&idYukaBackground);
         yukaNoComodo = true;
         yukaGlobal.inverte_sprite = 0;
         yukaGlobal.pos_x = 1000;
         rafa.pos_x = 650;
         rafa.inverte_sprite = RIGHT;
     }
+    if(veioDeOnde != 7){
+        if(yukaPerseguindo){
+            iniciaYuka(&yukaGlobal);
+            yukaGlobal.pos_x = rafa.pos_x;
+        }
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         if(timerMacaneta>0){
             timerMacaneta--;
         }
@@ -2328,7 +2802,10 @@ int Biblioteca(int veioDeOnde){
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
         if(yukaNoComodo && !fim){
-            yukaGlobal.pos_x-= yukaGlobal.velocidade;
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
             if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
                 yukaGlobal.cont_frames = 0;
                 yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
@@ -2341,8 +2818,14 @@ int Biblioteca(int veioDeOnde){
             al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
                                 yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
                                 yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
         }
-        if(fim){
+        else if(yukaNoComodo && fim){
             al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
                                 yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
                                 yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
@@ -2424,6 +2907,7 @@ int Biblioteca(int veioDeOnde){
     al_destroy_sample(abrirPorta);
     al_destroy_sample(macaneta);
     acaoAnterior = 6;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int BibliotecaAnim(){
@@ -2498,6 +2982,7 @@ int BibliotecaAnim(){
     rafa.inverte_sprite = RIGHT;
     yuka.pos_x = 1050;
     yuka.inverte_sprite = 0;
+    yuka.frames_sprite = 10;
 
     while(!trocarCena && !sair){
         iniciaTimer();
@@ -2864,6 +3349,7 @@ int Escritorio(int veioDeOnde){
     int opacidadeEmUmaEntradaI = 0;
     char salaDaPortaI[50];
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -2876,12 +3362,22 @@ int Escritorio(int veioDeOnde){
     } else  if(veioDeOnde == 9){
         rafa.pos_x = 1000;
     }
-
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>225 && rafa.pos_x<355){
             if(teclas[3]){
@@ -2924,6 +3420,35 @@ int Escritorio(int veioDeOnde){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -3000,6 +3525,7 @@ int Escritorio(int veioDeOnde){
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
     acaoAnterior = 8;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int SalaDeJantar(int veioDeOnde){
@@ -3019,6 +3545,7 @@ int SalaDeJantar(int veioDeOnde){
     int opacidadeEmUmaEntradaI = 0;
     char salaDaPortaI[50];
     char salaDaPortaS[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -3031,12 +3558,22 @@ int SalaDeJantar(int veioDeOnde){
     } else  if(veioDeOnde == 9){
         rafa.pos_x = 130;
     }
-
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
+    }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,-20,1120,teclas);
         if(rafa.pos_x>-50 && rafa.pos_x<20){
             if(teclas[2]){
@@ -3064,6 +3601,35 @@ int SalaDeJantar(int veioDeOnde){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
@@ -3126,6 +3692,7 @@ int SalaDeJantar(int veioDeOnde){
     al_destroy_bitmap(fade);
     al_destroy_sample(abrirPorta);
     acaoAnterior = 10;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int Hall(int veioDeOnde){
@@ -3157,6 +3724,7 @@ int Hall(int veioDeOnde){
     float cameraPosition = 0;
     char salaDaPortaS[50];
     char salaDaPortaI[50];
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -3180,8 +3748,19 @@ int Hall(int veioDeOnde){
     }
     else if(veioDeOnde == 10){
         rafa.pos_x = 2910;
+        rafa.inverte_sprite = LEFT;
+    }
+    if(yukaPerseguindo){
+        iniciaYuka(&yukaGlobal);
+        yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         if(timerMacaneta>0){
             timerMacaneta--;
         }
@@ -3189,6 +3768,7 @@ int Hall(int veioDeOnde){
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
+        if(!fim)
         movimentoPadrao(&rafa,2,2908,teclas);
         if(rafa.pos_x>-10 && rafa.pos_x<10){
             if(teclas[2]){
@@ -3288,6 +3868,35 @@ int Hall(int veioDeOnde){
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        if(yukaNoComodo && !fim){
+            yukaGlobal.inverte_sprite = yukaGlobal.pos_x > rafa.pos_x?0:1;
+            yukaGlobal.pos_x = yukaGlobal.pos_x > rafa.pos_x?
+                yukaGlobal.pos_x-yukaGlobal.velocidade:
+                yukaGlobal.pos_x+yukaGlobal.velocidade;
+            if(yukaGlobal.cont_frames > yukaGlobal.frames_sprite){
+                yukaGlobal.cont_frames = 0;
+                yukaGlobal.coluna_atual = (yukaGlobal.coluna_atual+1)%yukaGlobal.colunas_sprite;
+            }
+            else{
+                yukaGlobal.cont_frames++;
+            }
+            yukaGlobal.regiaoXdaFolha = yukaGlobal.coluna_atual*yukaGlobal.larguraSprite;
+            yukaGlobal.regiaoYdaFolha = yukaGlobal.linha_atual*yukaGlobal.alturaSprite;
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    fimDeJogo = true;
+                    fim = true;
+            }
+        }
+        else if(yukaNoComodo && fim){
+            al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
+                                yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
+                                yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
+        }
         if(emUmaEntradaS){
             if(opacidadeEmUmaEntradaS<255){
                 opacidadeEmUmaEntradaS+=5;
@@ -3360,7 +3969,6 @@ int Hall(int veioDeOnde){
     al_identity_transform(&camera);
     al_translate_transform(&camera, -cameraPosition,0);
     al_use_transform(&camera);
-
     al_destroy_bitmap(fundo);
     al_destroy_bitmap(frente);
     al_destroy_bitmap(fade);
@@ -3368,6 +3976,7 @@ int Hall(int veioDeOnde){
     al_destroy_sample(passosEscada);
     al_destroy_sample(macaneta);
     acaoAnterior = 2;
+    if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
 int HallAnim(){
@@ -3892,6 +4501,9 @@ int Menu(){
     al_destroy_audio_stream(musicaMenu);
     return 1;
 }
+int gameOver(){
+    return 1;
+}
 void atualizaCamera(float *posicaoCamera, float playerPosition, float playerWidth){
         *posicaoCamera = -(LARGURA_JANELA/2) + (playerPosition+playerWidth/2);
     if(*posicaoCamera<= 0)
@@ -3949,6 +4561,21 @@ void destroi(){
     }
     if(chuvaPadrao){
         al_destroy_sample(chuvaPadrao);
+    }
+    if(yukaBackground){
+        al_destroy_sample(yukaBackground);
+    }
+    if(gritoMorte){
+        al_destroy_sample(gritoMorte);
+    }
+    if(dying1){
+        al_destroy_sample(dying1);
+    }
+    if(dying2){
+        al_destroy_sample(dying2);
+    }
+    if(dying3){
+        al_destroy_sample(dying3);
     }
 }
 int init(){
@@ -4072,6 +4699,37 @@ int init(){
         destroi();
         return -1;
     }
+    yukaBackground = al_load_sample("sons/horrorSounds/yukaBackground.wav");
+    if(!yukaBackground){
+        erroMsg("Algo deu errado ao carregar um sample");
+        destroi();
+        return -1;
+    }
+    gritoMorte = al_load_sample("sons/horrorSounds/death.wav");
+    if(!gritoMorte){
+        erroMsg("Algo deu errado ao carregar um sample");
+        destroi();
+        return -1;
+    }
+    dying1 = al_load_sample("sons/horrorSounds/dying.wav");
+    if(!dying1){
+        erroMsg("Algo deu errado ao carregar um sample");
+        destroi();
+        return -1;
+    }
+    dying2 = al_load_sample("sons/horrorSounds/boneCrushing.wav");
+        if(!dying2){
+        erroMsg("Algo deu errado ao carregar um sample");
+        destroi();
+        return -1;
+    }
+    dying3 = al_load_sample("sons/horrorSounds/BloodSquirt.wav");
+    if(!dying3){
+        erroMsg("Algo deu errado ao carregar um sample");
+        destroi();
+        return -1;
+    }
+
     al_register_event_source(filaDeEvento, al_get_display_event_source(janela));
     al_register_event_source(filaDeEvento, al_get_keyboard_event_source());
     al_register_event_source(filaDeEvento, al_get_mouse_event_source());
@@ -4220,5 +4878,10 @@ int movimentoPadraoComEscondido(struct personagem *rafa,int comodoLimMin,int com
     }
     return 1;
 }
+int temporizaDistancia(int pos1, int pos2){
+    int distancia = pos1-pos2;
+    return distancia>0?distancia/4:(-(distancia))/4;
+}
+
 
 
