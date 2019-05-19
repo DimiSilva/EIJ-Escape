@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 //fim bibliotecas
 
 //constantes
@@ -38,6 +39,7 @@ ALLEGRO_SAMPLE *gritoMorte = NULL;
 ALLEGRO_SAMPLE *dying1 = NULL;
 ALLEGRO_SAMPLE *dying2 = NULL;
 ALLEGRO_SAMPLE *dying3 = NULL;
+ALLEGRO_SAMPLE *yukaScream = NULL;
 
 ALLEGRO_SAMPLE_ID idYukaBackground;
 ALLEGRO_SAMPLE_ID idChuva;
@@ -54,14 +56,17 @@ bool chuvaAlta = false;
 bool yukaBackgroundSom = false;
 bool yukaPerseguindo = false;
 int timerYukaEntrar = 0;
-int fugaYuka = 0;
+int timerFugaYuka = 0;
 
-int eventos[5] = {0,1,0,0,0};
-int acao = 6;
-int acaoAnterior = 7;
+int eventosTerminados = 5;
+int eventos[5] = {0,0,0,0,0};
+int acao = 2;
+int acaoAnterior = 1;
 
 double tempoInicial = 0;
 
+int spawnYukaValor = 0;
+int spawnYukaTentativa = 0;
 //fim variaveis e ponteiros
 
 //funcoes
@@ -205,6 +210,11 @@ struct personagem yukaGlobal;
 int main(){
     init();
     while(!sair){
+        if(acao == 1 || acao == 7 || acao == 18){
+            yukaPerseguindo = false;
+            timerYukaEntrar = 0;
+            timerFugaYuka = 0;
+        }
         if(fimDeJogo){
             al_play_sample(dying1,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
             al_play_sample(dying2,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
@@ -220,16 +230,36 @@ int main(){
             eventos[3] = 0;
             eventos[4] = 0;
             timerYukaEntrar = 0;
-            fugaYuka = 0;
+            timerFugaYuka =0;
+            eventosTerminados = 0;
             fimDeJogo = false;
             al_rest(7);
         }
-        if(yukaPerseguindo){
-            fugaYuka++;
+        if(eventosTerminados>=2 && (acao == 2 || acao == 5 || acao == 11)){
+            srand(time(NULL));
+            if(eventosTerminados == 2){
+                spawnYukaValor = rand() % 10;
+                spawnYukaTentativa = rand() % 10;
+            }
+            else if(eventosTerminados == 3){
+                spawnYukaValor = rand() % 8;
+                spawnYukaTentativa = rand() % 8;
+            }
+            else if(eventosTerminados == 4){
+                spawnYukaValor = rand() % 6;
+                spawnYukaTentativa = rand() % 6;
+            }
+            else if(eventosTerminados == 5){
+                spawnYukaValor = rand() % 4;
+                spawnYukaTentativa = rand() % 4;
+            }
+            if(spawnYukaTentativa == spawnYukaValor){
+                yukaPerseguindo = true;
+                timerYukaEntrar = 300;
+                timerFugaYuka = 1500;
+            }
         }
-        if(fugaYuka >= 3){
-            yukaPerseguindo = false;
-        }
+        if(yukaPerseguindo && timerFugaYuka <= 0)yukaPerseguindo = false;
         if(acao!=0&&acao!=14&&!chuvaBaixa){
             chuvaBaixa = true;
             if(chuvaAlta){
@@ -342,13 +372,19 @@ int QuartoYuka(){
     struct personagem rafa;
     iniciaRafa(&rafa);
     enum posicoes {RIGHT, LEFT};
+    int opacidadeEmUmaEntradaS = 0;
     int fadeOpacidade = 255;
     int opacidadeEmUmaEntradaI = 0;
+    int timerEscondido = 0;
     char salaDaPortaI[50];
+    char salaDaPortaS[50];
+    bool escondido = false;
+    bool visto = false;
     bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaI = false;
+    bool emUmaEntradaS = false;
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = LEFT;
     rafa.pos_x = 550;
@@ -357,17 +393,29 @@ int QuartoYuka(){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
+        else if(escondido && timerFugaYuka <= 0 && yukaNoComodo && yukaPerseguindo && !visto){
+            yukaPerseguindo = false;
+            yukaNoComodo = false;
+            al_stop_sample(&idYukaBackground);
+            yukaBackgroundSom = false;
+        }
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
         }
-        iniciaTimer();
+        if(timerEscondido>0){
+            timerEscondido--;
+        }
+        emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
         if(!fim)
-        movimentoPadrao(&rafa,-20,1120,teclas);
+        movimentoPadraoComEscondido(&rafa,-20,1120,teclas,&escondido);
         if(rafa.pos_x>500 && rafa.pos_x<600){
             if(teclas[3]){
                 if(!fim){
@@ -378,6 +426,27 @@ int QuartoYuka(){
             }
             emUmaEntradaI = true;
             strcpy(salaDaPortaI, "Corredor");
+        }
+        if(rafa.pos_x>950 && rafa.pos_x<1250){
+            if(teclas[2]){
+                if(!escondido && timerEscondido <= 0){
+                    if(yukaNoComodo)visto=true;
+                    escondido = true;
+                    timerEscondido = 240;
+                    rafa.pos_x = 1050;
+                }
+                else if(escondido && timerEscondido <= 0){
+                    escondido = false;
+                    timerEscondido = 240;
+                }
+            }
+            emUmaEntradaS = true;
+            if(!escondido){
+                strcpy(salaDaPortaS, "esconder embaixo da cama");
+            }
+            else{
+                strcpy(salaDaPortaS, "sair de baixo da cama");
+            }
         }
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
@@ -399,11 +468,21 @@ int QuartoYuka(){
             al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
                                 yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
                                 yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
-            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
-               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
-                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                    fimDeJogo = true;
-                    fim = true;
+            if(!escondido){
+                if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+                   (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                        al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                        fimDeJogo = true;
+                        fim = true;
+                }
+            }
+            else if(visto){
+                if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+                   (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                        al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                        fimDeJogo = true;
+                        fim = true;
+                }
             }
         }
         else if(yukaNoComodo && fim){
@@ -411,9 +490,14 @@ int QuartoYuka(){
                                 yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
                                 yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
         }
-        al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
-            rafa.larguraSprite,rafa.alturaSprite,
-            rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        if(!escondido){
+            al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
+                rafa.larguraSprite,rafa.alturaSprite,
+                rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        }
+
+        al_draw_bitmap(frente,0,0,0);
+        if(escondido)al_draw_bitmap(fade,0,0,0);
         if(emUmaEntradaI){
             if(opacidadeEmUmaEntradaI<255){
                 opacidadeEmUmaEntradaI+=5;
@@ -424,7 +508,26 @@ int QuartoYuka(){
         else{
             opacidadeEmUmaEntradaI = 0;
         }
-        al_draw_bitmap(frente,0,0,0);
+        if(emUmaEntradaS){
+            if(opacidadeEmUmaEntradaS<255){
+                opacidadeEmUmaEntradaS+=5;
+            }
+            if(strcmp(salaDaPortaS, "esconder embaixo da cama")!=0 && strcmp(salaDaPortaS, "sair de baixo da cama")!=0){
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+            else if(timerEscondido>0){
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,30,30),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+            else{
+                al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+                    rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
+            }
+        }
+        else{
+            opacidadeEmUmaEntradaS = 0;
+        }
         if(inicio){
             if(fadeOpacidade>0){
                 al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
@@ -485,6 +588,7 @@ int banheiroQuartoCasal(){
     char salaDaPortaS[50];
     bool yukaNoComodo = false;
     bool escondido = false;
+    bool visto = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -496,13 +600,21 @@ int banheiroQuartoCasal(){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
+        else if(escondido && timerFugaYuka <= 0 && yukaNoComodo && yukaPerseguindo && !visto){
+            yukaPerseguindo = false;
+            yukaNoComodo = false;
+            al_stop_sample(&idYukaBackground);
+            yukaBackgroundSom = false;
+        }
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         if(timerEscondido>0){
             timerEscondido--;
@@ -513,6 +625,7 @@ int banheiroQuartoCasal(){
         if(rafa.pos_x>360 && rafa.pos_x<500){
             if(teclas[2]){
                 if(!escondido && timerEscondido <= 0){
+                    if(yukaNoComodo)visto = true;
                     escondido = true;
                     timerEscondido = 200;
                     rafa.pos_x = 470;
@@ -565,11 +678,21 @@ int banheiroQuartoCasal(){
             al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
                                 yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
                                 yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
-            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
-               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
-                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                    fimDeJogo = true;
-                    fim = true;
+            if(!escondido){
+                if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+                   (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                        al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                        fimDeJogo = true;
+                        fim = true;
+                }
+            }
+            else if(visto){
+                if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+                   (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                        al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                        fimDeJogo = true;
+                        fim = true;
+                }
             }
         }
         else if(yukaNoComodo && fim){
@@ -580,6 +703,8 @@ int banheiroQuartoCasal(){
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        al_draw_bitmap(frente,0,0,0);
+        if(escondido)al_draw_bitmap(fade,0,0,0);
         if(emUmaEntradaS){
             if(opacidadeEmUmaEntradaS<255){
                 opacidadeEmUmaEntradaS+=5;
@@ -600,7 +725,6 @@ int banheiroQuartoCasal(){
         else{
             opacidadeEmUmaEntradaS = 0;
         }
-        al_draw_bitmap(frente,0,0,0);
         if(inicio){
             if(fadeOpacidade>0){
                 al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
@@ -678,13 +802,15 @@ int QuartoCasal(int veioDeOnde){
         rafa.pos_x = 805;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
@@ -848,10 +974,11 @@ int QuartoHospedes(int veioDeOnde){
         rafa.pos_x = 1120;
     }
     while(!trocarCena && !sair){
+        if(timerFugaYuka >= 0)timerFugaYuka--;
+        iniciaTimer();
         if(timerMacaneta>0){
             timerMacaneta--;
         }
-        iniciaTimer();
         emUmaEntradaI = false;
         emUmaEntradaS = false;
         filaPadrao(teclas);
@@ -1255,6 +1382,7 @@ int QuartoHospedesAnim(){
                                 if(teclas[0]){
                                     escolhaFeita = true;
                                     eventos[0] = escolha;
+                                    eventosTerminados = 1;
                                 }
                             }
                             else{
@@ -1364,13 +1492,15 @@ int Varanda(int veioDeOnde){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         filaPadrao(teclas);
         if(!fim)
@@ -1531,13 +1661,15 @@ int BanheiroSegundoAndar(){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         filaPadrao(teclas);
         if(!fim)
@@ -1651,12 +1783,13 @@ int Cozinha(){
     struct personagem rafa;
     iniciaRafa(&rafa);
     enum posicoes {RIGHT, LEFT};
+    char salaDaPortaS[50];
     int fadeOpacidade = 255;
     int opacidadeEmUmaEntradaS = 0;
     int timerEscondido = 0;
-    char salaDaPortaS[50];
-    bool yukaNoComodo = false;
     bool escondido = false;
+    bool visto = false;
+    bool yukaNoComodo = false;
     bool inicio = true;
     bool fim = false;
     bool emUmaEntradaS = false;
@@ -1669,6 +1802,20 @@ int Cozinha(){
     }
     while(!trocarCena && !sair){
         iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
+        else if(escondido && timerFugaYuka <= 0 && yukaNoComodo && yukaPerseguindo && !visto){
+            yukaPerseguindo = false;
+            yukaNoComodo = false;
+            al_stop_sample(&idYukaBackground);
+            yukaBackgroundSom = false;
+        }
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         emUmaEntradaS = false;
         if(timerEscondido>0){
             timerEscondido--;
@@ -1679,6 +1826,7 @@ int Cozinha(){
         if(rafa.pos_x>170 && rafa.pos_x<300){
             if(teclas[2]){
                 if(!escondido && timerEscondido <= 0){
+                    if(yukaNoComodo)visto=true;
                     escondido = true;
                     timerEscondido = 240;
                     rafa.pos_x = 235;
@@ -1729,11 +1877,21 @@ int Cozinha(){
             al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
                                 yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
                                 yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
-            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
-               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
-                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                    fimDeJogo = true;
-                    fim = true;
+            if(!escondido){
+                if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+                   (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                        al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                        fimDeJogo = true;
+                        fim = true;
+                }
+            }
+            else if(visto){
+                if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+                   (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                        al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                        fimDeJogo = true;
+                        fim = true;
+                }
             }
         }
         else if(yukaNoComodo && fim){
@@ -1746,6 +1904,8 @@ int Cozinha(){
                 rafa.larguraSprite,rafa.alturaSprite,
                 rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
         }
+        al_draw_bitmap(frente,0,0,0);
+        if(escondido)al_draw_bitmap(fade,0,0,0);
         if(emUmaEntradaS){
             if(opacidadeEmUmaEntradaS<255){
                 opacidadeEmUmaEntradaS+=5;
@@ -1766,7 +1926,6 @@ int Cozinha(){
         else{
             opacidadeEmUmaEntradaS = 0;
         }
-        al_draw_bitmap(frente,0,0,0);
         if(inicio){
             if(fadeOpacidade>0){
                 al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
@@ -1794,7 +1953,6 @@ int Cozinha(){
             al_draw_bitmap(fade,0,0,0);
             al_rest(3);
         }
-
         al_flip_display();
         if(obterTempo()< 1.0/FPS){
             al_rest((1.0/FPS)-obterTempo());
@@ -1827,6 +1985,7 @@ int BanheiroPrimeiroAndar(){
     int timerEscondido = 0;
     char salaDaPortaS[50];
     bool yukaNoComodo = false;
+    bool visto = false;
     bool escondido = false;
     bool inicio = true;
     bool fim = false;
@@ -1840,6 +1999,20 @@ int BanheiroPrimeiroAndar(){
     }
     while(!trocarCena && !sair){
         iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
+        else if(escondido && timerFugaYuka <= 0 && yukaNoComodo && yukaPerseguindo && !visto){
+            yukaPerseguindo = false;
+            yukaNoComodo = false;
+            al_stop_sample(&idYukaBackground);
+            yukaBackgroundSom = false;
+        }
+        if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
+            yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+        }
+        else if(yukaPerseguindo && !yukaNoComodo){
+            timerYukaEntrar--;
+        }
         emUmaEntradaS = false;
         if(timerEscondido>0){
             timerEscondido--;
@@ -1850,6 +2023,7 @@ int BanheiroPrimeiroAndar(){
         if(rafa.pos_x>150 && rafa.pos_x<251){
             if(teclas[2]){
                 if(!escondido && timerEscondido <= 0){
+                    if(yukaNoComodo)visto=true;
                     escondido = true;
                     timerEscondido = 240;
                     rafa.pos_x = 250;
@@ -1902,11 +2076,21 @@ int BanheiroPrimeiroAndar(){
             al_draw_bitmap_region(yukaGlobal.spritesheet,yukaGlobal.regiaoXdaFolha,yukaGlobal.regiaoYdaFolha,
                                 yukaGlobal.larguraSprite,yukaGlobal.alturaSprite,
                                 yukaGlobal.pos_x,yukaGlobal.pos_y,yukaGlobal.inverte_sprite);
-            if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
-               (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
-                    al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
-                    fimDeJogo = true;
-                    fim = true;
+            if(!escondido){
+                if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+                   (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                        al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                        fimDeJogo = true;
+                        fim = true;
+                }
+            }
+            else if(visto){
+                if((yukaGlobal.pos_x + 70 >= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 <= rafa.pos_x - 30)||
+                   (yukaGlobal.pos_x + 70 <= rafa.pos_x + 30 && yukaGlobal.pos_x - 70 >= rafa.pos_x - 30)){
+                        al_play_sample(gritoMorte,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                        fimDeJogo = true;
+                        fim = true;
+                }
             }
         }
         else if(yukaNoComodo && fim){
@@ -1917,6 +2101,8 @@ int BanheiroPrimeiroAndar(){
         al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
             rafa.larguraSprite,rafa.alturaSprite,
             rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        al_draw_bitmap(frente,0,0,0);
+        if(escondido)al_draw_bitmap(fade,0,0,0);
         if(emUmaEntradaS){
             if(opacidadeEmUmaEntradaS<255){
                 opacidadeEmUmaEntradaS+=5;
@@ -1937,7 +2123,6 @@ int BanheiroPrimeiroAndar(){
         else{
             opacidadeEmUmaEntradaS = 0;
         }
-        al_draw_bitmap(frente,0,0,0);
         if(inicio){
             if(fadeOpacidade>0){
                 al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
@@ -2025,8 +2210,11 @@ int CorredorSegundoAndar1(int veioDeOnde){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
@@ -2034,12 +2222,11 @@ int CorredorSegundoAndar1(int veioDeOnde){
         if(timerMacaneta>0){
             timerMacaneta--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         filaPadrao(teclas);
         if(!fim)
         movimentoPadrao(&rafa,2,2908,teclas);
-        if(rafa.pos_x>0 && rafa.pos_x<20){
+        if(rafa.pos_x>-50 && rafa.pos_x<30){
             if(teclas[2]){
                 if(!fim){
                     al_play_sample(passosEscada,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
@@ -2183,7 +2370,6 @@ int CorredorSegundoAndar1(int veioDeOnde){
             al_draw_bitmap(fade,0,0,0);
             al_rest(3);
         }
-        al_draw_textf(pixelFont,al_map_rgb(255,255,255),rafa.pos_x+50,rafa.pos_y -100,ALLEGRO_ALIGN_CENTER,"%f",rafa.pos_x);
         al_flip_display();
         if(obterTempo()< 1.0/FPS){
             al_rest((1.0/FPS)-obterTempo());
@@ -2200,7 +2386,7 @@ int CorredorSegundoAndar1(int veioDeOnde){
     al_destroy_sample(abrirPorta);
     al_destroy_sample(passosEscada);
     al_destroy_sample(macaneta);
-    acaoAnterior = 5;
+    acaoAnterior = 11;
     if(yukaPerseguindo)timerYukaEntrar = temporizaDistancia(rafa.pos_x, yukaGlobal.pos_x);
     return 1;
 }
@@ -2260,8 +2446,11 @@ int CorredorSegundoAndar(int veioDeOnde){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
@@ -2269,7 +2458,6 @@ int CorredorSegundoAndar(int veioDeOnde){
         if(timerMacaneta>0){
             timerMacaneta--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
@@ -2538,13 +2726,15 @@ int CorredorPrimeiroAndar(int veioDeOnde){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
@@ -2738,6 +2928,7 @@ int Biblioteca(int veioDeOnde){
         yukaNoComodo = true;
         yukaGlobal.inverte_sprite = 0;
         yukaGlobal.pos_x = 1000;
+        timerYukaEntrar = 700;
         rafa.pos_x = 650;
         rafa.inverte_sprite = RIGHT;
     }
@@ -2748,8 +2939,11 @@ int Biblioteca(int veioDeOnde){
         }
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
@@ -2757,7 +2951,6 @@ int Biblioteca(int veioDeOnde){
         if(timerMacaneta>0){
             timerMacaneta--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
@@ -2918,7 +3111,6 @@ int BibliotecaAnim(){
     ALLEGRO_BITMAP *detalheEscolhaDialogo = NULL;
     ALLEGRO_SAMPLE *horrorSound = NULL;
     ALLEGRO_SAMPLE *portaAbrindo = NULL;
-    ALLEGRO_SAMPLE *yukaScream = NULL;
     dialogBox = al_load_bitmap("imgs/dialogBox/DialogBox.png");
     fundo = al_load_bitmap("imgs/biblioteca/BibliotecaFundo.png");
     frente = al_load_bitmap("imgs/biblioteca/BibliotecaFrente.png");
@@ -2926,7 +3118,6 @@ int BibliotecaAnim(){
     detalheEscolhaDialogo = al_load_bitmap("imgs/efeitos/detalheEscolhaDialogo.png");
     horrorSound = al_load_sample("sons/horrorSounds/Bam.wav");
     portaAbrindo = al_load_sample("sons/horrorSounds/horrorDoor.wav");
-    yukaScream = al_load_sample("sons/horrorSounds/femaleScream.wav");
     struct personagem rafa;
     struct personagem ilan;
     struct personagem yuka;
@@ -3215,6 +3406,7 @@ int BibliotecaAnim(){
                                 if(teclas[0]){
                                     escolhaFeita = true;
                                     eventos[1] = escolha;
+                                    eventosTerminados = 2;
                                 }
                             }
                             else{
@@ -3325,7 +3517,6 @@ int BibliotecaAnim(){
     al_destroy_bitmap(fade);
     al_destroy_bitmap(detalheEscolhaDialogo);
     al_destroy_sample(horrorSound);
-    al_destroy_sample(yukaScream);
     acaoAnterior = 7;
     return 1;
 }
@@ -3367,13 +3558,15 @@ int Escritorio(int veioDeOnde){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
@@ -3563,13 +3756,14 @@ int SalaDeJantar(int veioDeOnde){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
@@ -3755,8 +3949,11 @@ int Hall(int veioDeOnde){
         yukaGlobal.pos_x = rafa.pos_x;
     }
     while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerFugaYuka >= 0)timerFugaYuka--;
         if(yukaPerseguindo && !yukaNoComodo && timerYukaEntrar <= 0){
             yukaNoComodo = true;
+            al_play_sample(yukaScream,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
         }
         else if(yukaPerseguindo && !yukaNoComodo){
             timerYukaEntrar--;
@@ -3764,7 +3961,6 @@ int Hall(int veioDeOnde){
         if(timerMacaneta>0){
             timerMacaneta--;
         }
-        iniciaTimer();
         emUmaEntradaS = false;
         emUmaEntradaI = false;
         filaPadrao(teclas);
@@ -4577,6 +4773,9 @@ void destroi(){
     if(dying3){
         al_destroy_sample(dying3);
     }
+    if(yukaScream){
+        al_destroy_sample(yukaScream);
+    }
 }
 int init(){
     //inicializacao das bibliotecas e add-ons
@@ -4725,6 +4924,12 @@ int init(){
     }
     dying3 = al_load_sample("sons/horrorSounds/BloodSquirt.wav");
     if(!dying3){
+        erroMsg("Algo deu errado ao carregar um sample");
+        destroi();
+        return -1;
+    }
+    yukaScream = al_load_sample("sons/horrorSounds/femaleScream.wav");
+    if(!yukaBackground){
         erroMsg("Algo deu errado ao carregar um sample");
         destroi();
         return -1;
@@ -4880,7 +5085,7 @@ int movimentoPadraoComEscondido(struct personagem *rafa,int comodoLimMin,int com
 }
 int temporizaDistancia(int pos1, int pos2){
     int distancia = pos1-pos2;
-    return distancia>0?distancia/4:(-(distancia))/4;
+    return distancia>0?(distancia/4) + timerFugaYuka:((-(distancia))/4)+timerFugaYuka;
 }
 
 
