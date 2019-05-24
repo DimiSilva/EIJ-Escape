@@ -58,10 +58,10 @@ bool yukaPerseguindo = false;
 int timerYukaEntrar = 0;
 int timerFugaYuka = 0;
 
-int eventosTerminados = 5;
+int eventosTerminados = 0;
 int eventos[5] = {0,0,0,0,0};
-int acao = 2;
-int acaoAnterior = 1;
+int acao = 0;
+int acaoAnterior = 0;
 
 double tempoInicial = 0;
 
@@ -75,6 +75,7 @@ void destroi();
 
 int Menu();
 int HallAnim();
+int EscritorioAnim();
 int Hall(int veioDeOnde);
 int Cozinha();
 int BanheiroPrimeiroAndar();
@@ -354,10 +355,330 @@ int main(){
             case 18:
                 QuartoHospedesAnim();
             break;
+            case 20:
+                EscritorioAnim();
+            break;
         }
         trocarCena = false;
     }
     destroi();
+    return 1;
+}
+
+int EscritorioAnim(){
+    ALLEGRO_BITMAP *fundo = NULL;
+    ALLEGRO_BITMAP *frente = NULL;
+    ALLEGRO_BITMAP *dialogBox = NULL;
+    ALLEGRO_BITMAP *fade = NULL;
+    ALLEGRO_BITMAP *detalheEscolhaDialogo = NULL;
+    dialogBox = al_load_bitmap("imgs/dialogBox/DialogBox.png");
+    fundo = al_load_bitmap("imgs/escritorio/EscritorioFundo.png");
+    frente = al_load_bitmap("imgs/escritorio/EscritorioFrente.png");
+    fade = al_load_bitmap("imgs/efeitos/fade.png");
+    detalheEscolhaDialogo = al_load_bitmap("imgs/efeitos/detalheEscolhaDialogo.png");
+    struct personagem rafa;
+    struct personagem ilan;
+
+    iniciaRafa(&rafa);
+    iniciaIlan(&ilan);
+    char dialogos[26][100];
+    strcpy(dialogos[0], "Ilan: Rafael ? é você cara ?");
+    strcpy(dialogos[1], "Rafael: sim, bom te ver mano");
+    strcpy(dialogos[2], "Ilan: fico feliz que você esteja bem");
+    strcpy(dialogos[3], "Ilan: queria me desculpar pela discussão sobre o fantasma...");
+
+    strcpy(dialogos[4], "Escolha 1: precisa se desculpar não, nem eu to acreditando no que aconteceu");
+    strcpy(dialogos[5], "Escolha 2: tudo bem, não se preocupa com isso, eu to de boas");
+    strcpy(dialogos[6], "Escolha 3: eu avisei...");
+
+    enum posicoes {RIGHT, LEFT};
+    int escolha = 1;
+    int detalheEscolhaOpacidade = 50;
+    bool aumentaOpacidadeEscolha = true;
+    bool escolhaFeita = false;
+    int dialogoAtual = 0;
+    int tempoPularDialogo = 60;
+    int opacidadedb = 0;
+    int fadeOpacidade = 255;
+    int timerDialogo = 0;
+    int timerTrocarEscolha = 0;
+    int timerEscolha = 0;
+    bool inicio = true;
+    bool fim = false;
+    bool teclas[3] = {false, false, false};
+    bool pausarDialogo = false;
+    bool dialogBoxAtiva = false;
+    ilan.pos_x = 50;
+    ilan.inverte_sprite = RIGHT;
+    rafa.pos_x = 1120;
+    rafa.inverte_sprite = LEFT;
+
+    while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerTrocarEscolha>0){
+            timerTrocarEscolha--;
+        }
+        while(!al_event_queue_is_empty(filaDeEvento)){
+            ALLEGRO_EVENT evento;
+            al_wait_for_event(filaDeEvento, &evento);
+
+            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
+                sair = true;
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_SPACE){
+                    teclas[0] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[1] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[2] = false;
+                }
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_SPACE){
+                    teclas[0] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[1] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[2] = true;
+                }
+            }
+        }
+        if(rafa.andando || rafa.correndo){
+            rafa.linha_atual = rafa.andando?1:2;
+            rafa.velocidade = rafa.andando?3:6;
+            rafa.colunas_sprite = 8;
+            rafa.frames_sprite = 6;
+        }
+        else{
+            rafa.velocidade = 0;
+            rafa.linha_atual = 0;
+            rafa.colunas_sprite = 5;
+            rafa.frames_sprite = 25;
+            if(rafa.coluna_atual>4){
+                rafa.coluna_atual = 0;
+            }
+        }
+        if(larissa.andando || larissa.correndo){
+            ilan.linha_atual = ilan.andando?1:2;
+            ilan.velocidade = ilan.andando?3:6;
+            ilan.colunas_sprite = 8;
+            ilan.frames_sprite = 6;
+        }
+        else{
+            ilan.velocidade = 0;
+            ilan.linha_atual = 0;
+            ilan.colunas_sprite = 5;
+            ilan.frames_sprite = 25;
+            if(ilan.coluna_atual>4){
+                ilan.coluna_atual = 0;
+            }
+        }
+        if(rafa.cont_frames > rafa.frames_sprite){
+            rafa.cont_frames = 0;
+            rafa.coluna_atual = (rafa.coluna_atual+1)%rafa.colunas_sprite;
+        }
+        else{
+            rafa.cont_frames++;
+        }
+        if(ilan.cont_frames > ilan.frames_sprite){
+            ilan.cont_frames = 0;
+            ilan.coluna_atual = (ilan.coluna_atual+1)%ilan.colunas_sprite;
+        }
+        else{
+            ilan.cont_frames++;
+        }
+
+        if(timerTrocarEscolha <= 0){
+            if(teclas[1]){
+                if(escolha > 1){
+                    escolha--;
+                }
+                timerTrocarEscolha = 10;
+            }
+            else if(teclas[2]){
+                if(escolha < 3){
+                    escolha++;
+                }
+                timerTrocarEscolha = 10;
+            }
+        }
+
+        rafa.regiaoXdaFolha = rafa.coluna_atual*rafa.larguraSprite;
+        rafa.regiaoYdaFolha = rafa.linha_atual*rafa.alturaSprite;
+
+        ilan.regiaoXdaFolha = ilan.coluna_atual*ilan.larguraSprite;
+        ilan.regiaoYdaFolha = ilan.linha_atual*ilan.alturaSprite;
+        al_clear_to_color(al_map_rgb(0,0,0));
+        al_draw_bitmap(fundo,0,0,0);
+        al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
+                              rafa.larguraSprite,rafa.alturaSprite,
+                              rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        al_draw_bitmap_region(ilan.spritesheet,ilan.regiaoXdaFolha,ilan.regiaoYdaFolha,
+                              ilan.larguraSprite,ilan.alturaSprite,
+                              ilan.pos_x,ilan.pos_y,ilan.inverte_sprite);
+        al_draw_bitmap(frente,0,0,0);
+        if(dialogBoxAtiva){
+            if(opacidadedb<255){
+                opacidadedb+=5;
+            }
+            al_draw_tinted_bitmap(dialogBox,al_map_rgb(opacidadedb,opacidadedb,opacidadedb),0,500,0);
+        }
+        if(!inicio){
+            dialogBoxAtiva = true;
+            if(opacidadedb>= 255)
+            {
+                timerDialogo = timerDialogo>0?timerDialogo-1:0;
+                if(dialogoAtual != 20 || timerDialogo > 0){
+                    al_draw_text(pixelFont,al_map_rgb(200,200,200),50,520,ALLEGRO_ALIGN_LEFT,dialogos[dialogoAtual]);
+                }
+
+                if(!pausarDialogo){
+                    if(tempoPularDialogo>0){
+                        tempoPularDialogo--;
+                    }
+                    if(tempoPularDialogo <= 0){
+                        if(dialogoAtual != 25){
+                            al_draw_text(pixelFontPequena,al_map_rgb(200,200,200),1000,580,ALLEGRO_ALIGN_CENTER,"pressione espaço para pular o dialogo");
+                        }
+                        if(teclas[0]){
+                            tempoPularDialogo = 60;
+                            if(dialogoAtual != 25){
+                                dialogoAtual++;
+                            }
+                        }
+                    }
+                    if(dialogoAtual == 3){
+                        pausarDialogo = true;
+                    }
+                    if(dialogoAtual == 20){
+                        timerDialogo = 240;
+                        timerEscolha = 30;
+                        pausarDialogo = true;
+                    }
+                    if(dialogoAtual == 25 && tempoPularDialogo <= 0){
+                        pausarDialogo = true;
+                        fim = true;
+                        acao = 13;
+                    }
+                }
+                else if(dialogoAtual == 3){
+                    if(rafa.pos_x > 100){
+                        rafa.andando = true;
+                        rafa.pos_x -= rafa.velocidade;
+                    }
+                    else{
+                        rafa.andando = false;
+                        pausarDialogo = false;
+                        dialogoAtual++;
+                    }
+                }
+                else if(dialogoAtual == 20){
+                    if(timerDialogo <= 0){
+                        if(!escolhaFeita){
+                            if(detalheEscolhaOpacidade <= 50){
+                                aumentaOpacidadeEscolha = true;
+                            }
+                            else if(detalheEscolhaOpacidade >= 150){
+                                aumentaOpacidadeEscolha = false;
+                            }
+                            if(aumentaOpacidadeEscolha){
+                                detalheEscolhaOpacidade++;
+                            }
+                            else{
+                                detalheEscolhaOpacidade--;
+                            }
+                            al_draw_text(pixelFont,al_map_rgb(200,200,200),50,520,ALLEGRO_ALIGN_LEFT,dialogos[21]);
+                            al_draw_text(pixelFont,al_map_rgb(200,200,200),50,540,ALLEGRO_ALIGN_LEFT,dialogos[22]);
+                            al_draw_text(pixelFont,al_map_rgb(200,200,200),50,560,ALLEGRO_ALIGN_LEFT,dialogos[23]);
+                            switch(escolha){
+                                case 1:
+                                    al_draw_tinted_bitmap(detalheEscolhaDialogo,al_map_rgba(0,0,0,detalheEscolhaOpacidade),0,516,0);
+                                break;
+                                case 2:
+                                    al_draw_tinted_bitmap(detalheEscolhaDialogo,al_map_rgba(0,0,0,detalheEscolhaOpacidade),0,536,0);
+                                break;
+                                case 3:
+                                    al_draw_tinted_bitmap(detalheEscolhaDialogo,al_map_rgba(0,0,0,detalheEscolhaOpacidade),0,556,0);
+                                break;
+                            }
+                            if(timerEscolha<=0){
+                                if(teclas[0]){
+                                    escolhaFeita = true;
+                                    eventos[0] = escolha;
+                                    eventosTerminados = 1;
+                                }
+                            }
+                            else{
+                                timerEscolha--;
+                            }
+
+                        }
+                        else{
+                            pausarDialogo = false;
+                            dialogoAtual = 24;
+                            tempoPularDialogo = 60;
+                            switch(escolha){
+                                case 1:
+                                    strcpy(dialogos[7], "Ilan: é macho, aquilo foi muito bizarro, a gente precisa sair daqui");
+                                    strcpy(dialogos[8], "Rafael: sim, vamos voltar pra buscar a Larissa");
+                                break;
+                                case 2:
+                                    strcpy(dialogos[7], "Ilan: então beleza, vamos sair daqui");
+                                    strcpy(dialogos[8], "Rafael: vamos lá");
+                                break;
+                                case 3:
+                                    strcpy(dialogos[7], "Ilan: legal Rafa, legal ...");
+                                    strcpy(dialogos[8], "Rafael: ...");
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if(inicio){
+            if(fadeOpacidade>0){
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade -= 5;
+            }
+            else{
+                inicio = false;
+                fadeOpacidade = 0;
+            }
+        }
+        else if(fim){
+            if(fadeOpacidade<255){
+                if(fadeOpacidade > 255){
+                    fadeOpacidade = 255;
+                }
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade += 5;
+            }
+            else{
+                trocarCena = true;
+                fim = false;
+            }
+        }
+        if(trocarCena){
+            al_draw_bitmap(fade,0,0,0);
+        }
+        al_flip_display();
+        if(obterTempo()< 1.0/FPS){
+            al_rest((1.0/FPS)-obterTempo());
+        }
+    }
+    al_destroy_bitmap(fundo);
+    al_destroy_bitmap(frente);
+    al_destroy_bitmap(dialogBox);
+    al_destroy_bitmap(fade);
+    al_destroy_bitmap(detalheEscolhaDialogo);
+    acaoAnterior = 20;
     return 1;
 }
 int QuartoYuka(){
