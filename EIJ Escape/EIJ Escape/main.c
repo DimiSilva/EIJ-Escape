@@ -58,10 +58,10 @@ bool yukaPerseguindo = false;
 int timerYukaEntrar = 0;
 int timerFugaYuka = 0;
 
-int eventosTerminados = 5;
-int eventos[5] = {0,0,0,0,0};
-int acao = 2;
-int acaoAnterior = 1;
+int eventosTerminados = 0;
+int eventos[5] = {1,1,0,0,0};
+int acao = 19;
+int acaoAnterior = 0;
 
 double tempoInicial = 0;
 
@@ -89,6 +89,7 @@ int Escritorio(int veioDeOnde);
 int CorredorSegundoAndar1(int veioDeOnde);
 int QuartoHospedes();
 int QuartoHospedesAnim();
+int QuartoHospedesAnim1();
 int QuartoCasal(int veioDeOnde);
 int QuartoYuka();
 int banheiroQuartoCasal();
@@ -238,24 +239,24 @@ int main(){
         if(eventosTerminados>=2 && (acao == 2 || acao == 5 || acao == 11)){
             srand(time(NULL));
             if(eventosTerminados == 2){
-                spawnYukaValor = rand() % 10;
-                spawnYukaTentativa = rand() % 10;
-            }
-            else if(eventosTerminados == 3){
-                spawnYukaValor = rand() % 8;
-                spawnYukaTentativa = rand() % 8;
-            }
-            else if(eventosTerminados == 4){
                 spawnYukaValor = rand() % 6;
                 spawnYukaTentativa = rand() % 6;
             }
-            else if(eventosTerminados == 5){
+            else if(eventosTerminados == 3){
+                spawnYukaValor = rand() % 5;
+                spawnYukaTentativa = rand() % 5;
+            }
+            else if(eventosTerminados == 4){
                 spawnYukaValor = rand() % 4;
                 spawnYukaTentativa = rand() % 4;
             }
+            else if(eventosTerminados == 5){
+                spawnYukaValor = rand() % 3;
+                spawnYukaTentativa = rand() % 3;
+            }
             if(spawnYukaTentativa == spawnYukaValor){
                 yukaPerseguindo = true;
-                timerYukaEntrar = 300;
+                timerYukaEntrar = 150;
                 timerFugaYuka = 1500;
             }
         }
@@ -353,6 +354,9 @@ int main(){
             break;
             case 18:
                 QuartoHospedesAnim();
+            break;
+            case 19:
+                QuartoHospedesAnim1();
             break;
         }
         trocarCena = false;
@@ -967,7 +971,7 @@ int QuartoHospedes(int veioDeOnde){
     bool emUmaEntradaI = false;
     bool teclas[5] = {false,false,false,false,false};
     rafa.inverte_sprite = LEFT;
-    if(veioDeOnde == 18){
+    if(veioDeOnde == 18 || veioDeOnde == 19){
         rafa.pos_x = 100;
     }
     else{
@@ -1160,8 +1164,6 @@ int QuartoHospedesAnim(){
     strcpy(dialogos[21], "Escolha 1 - Larissa vem comigo, por favor eu insisto, não é seguro aqui");
     strcpy(dialogos[22], "Escolha 2 - beleza, fique ai e não saia até voltarmos");
     strcpy(dialogos[23], "Escolha 3 - a então se vira ae !");
-
-
 
     enum posicoes {RIGHT, LEFT};
     int escolha = 1;
@@ -1453,6 +1455,318 @@ int QuartoHospedesAnim(){
     acaoAnterior = 18;
     return 1;
 }
+int QuartoHospedesAnim1(){
+    ALLEGRO_BITMAP *fundo = NULL;
+    ALLEGRO_BITMAP *frente = NULL;
+    ALLEGRO_BITMAP *dialogBox = NULL;
+    ALLEGRO_BITMAP *fade = NULL;
+    ALLEGRO_BITMAP *detalheEscolhaDialogo = NULL;
+    dialogBox = al_load_bitmap("imgs/dialogBox/DialogBox.png");
+    fundo = al_load_bitmap("imgs/quartoHospedes/QuartoHospedesFundo.png");
+    frente = al_load_bitmap("imgs/quartoHospedes/QuartoHospedesFrente.png");
+    fade = al_load_bitmap("imgs/efeitos/fade.png");
+    detalheEscolhaDialogo = al_load_bitmap("imgs/efeitos/detalheEscolhaDialogo.png");
+    struct personagem rafa;
+    struct personagem larissa;
+
+    iniciaRafa(&rafa);
+    iniciaLarissa(&larissa);
+    char dialogos[26][100];
+    strcpy(dialogos[0], "Larissa: que gritaria foi essa ? Ta tudo bem ?");
+    strcpy(dialogos[1], "Rafael: eu estava conversando com o Ilan");
+    strcpy(dialogos[2], "Rafael: de repente surgiu uma mulher se arrastando toda ensanguentada");
+    strcpy(dialogos[3], "Larissa: meu deus... Então a história do fantasma é verdade !");
+    strcpy(dialogos[4], "Rafael: fantasma?");
+    strcpy(dialogos[5], "Larissa: sim, uns 20 anos atrás uma menina cometeu suicídio aqui");
+    strcpy(dialogos[6], "Larissa: depois disso ninguém mais conseguiu morar nessa casa");
+    strcpy(dialogos[7], "Larissa: e muita gente sumiu depois de ter vindo para cá");
+    strcpy(dialogos[8], "Rafael: massa, então vamo tentar ir embora daqui logo");
+
+    strcpy(dialogos[9], "Escolha 1 - vou atrás do Ilan, continua escondida tá, volto logo");
+    strcpy(dialogos[10], "Escolha 2 - você vai continuar aqui ?");
+    strcpy(dialogos[11], "Escolha 3 - você vai continuar aqui escondida ? Deixa de ser covarde !");
+    enum posicoes {RIGHT, LEFT};
+    int escolha = 1;
+    int detalheEscolhaOpacidade = 50;
+    bool aumentaOpacidadeEscolha = true;
+    bool escolhaFeita = false;
+    int dialogoAtual = 0;
+    int tempoPularDialogo = 60;
+    int opacidadedb = 0;
+    int fadeOpacidade = 255;
+    int timerDialogo = 0;
+    int timerTrocarEscolha = 0;
+    int timerEscolha = 0;
+    bool inicio = true;
+    bool fim = false;
+    bool teclas[3] = {false, false, false};
+    bool pausarDialogo = false;
+    bool dialogBoxAtiva = false;
+    larissa.pos_x = 50;
+    larissa.inverte_sprite = RIGHT;
+    rafa.pos_x = 1120;
+    rafa.inverte_sprite = LEFT;
+
+    while(!trocarCena && !sair){
+        iniciaTimer();
+        if(timerTrocarEscolha>0){
+            timerTrocarEscolha--;
+        }
+        while(!al_event_queue_is_empty(filaDeEvento)){
+            ALLEGRO_EVENT evento;
+            al_wait_for_event(filaDeEvento, &evento);
+
+            if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE){
+                sair = true;
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_SPACE){
+                    teclas[0] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[1] = false;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[2] = false;
+                }
+            }
+            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
+                if(evento.keyboard.keycode == ALLEGRO_KEY_SPACE){
+                    teclas[0] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_UP || evento.keyboard.keycode == ALLEGRO_KEY_W){
+                    teclas[1] = true;
+                }
+                else if(evento.keyboard.keycode == ALLEGRO_KEY_DOWN || evento.keyboard.keycode == ALLEGRO_KEY_S){
+                    teclas[2] = true;
+                }
+            }
+        }
+        if(rafa.andando || rafa.correndo){
+            rafa.linha_atual = rafa.andando?1:2;
+            rafa.velocidade = rafa.andando?3:6;
+            rafa.colunas_sprite = 8;
+            rafa.frames_sprite = 6;
+        }
+        else{
+            rafa.velocidade = 0;
+            rafa.linha_atual = 0;
+            rafa.colunas_sprite = 5;
+            rafa.frames_sprite = 25;
+            if(rafa.coluna_atual>4){
+                rafa.coluna_atual = 0;
+            }
+        }
+        if(larissa.andando || larissa.correndo){
+            larissa.linha_atual = larissa.andando?1:2;
+            larissa.velocidade = larissa.andando?3:6;
+            larissa.colunas_sprite = 8;
+            larissa.frames_sprite = 6;
+        }
+        else{
+            larissa.velocidade = 0;
+            larissa.linha_atual = 0;
+            larissa.colunas_sprite = 5;
+            larissa.frames_sprite = 25;
+            if(larissa.coluna_atual>4){
+                larissa.coluna_atual = 0;
+            }
+        }
+        if(rafa.cont_frames > rafa.frames_sprite){
+            rafa.cont_frames = 0;
+            rafa.coluna_atual = (rafa.coluna_atual+1)%rafa.colunas_sprite;
+        }
+        else{
+            rafa.cont_frames++;
+        }
+        if(larissa.cont_frames > larissa.frames_sprite){
+            larissa.cont_frames = 0;
+            larissa.coluna_atual = (larissa.coluna_atual+1)%larissa.colunas_sprite;
+        }
+        else{
+            larissa.cont_frames++;
+        }
+
+        if(timerTrocarEscolha <= 0){
+            if(teclas[1]){
+                if(escolha > 1){
+                    escolha--;
+                }
+                timerTrocarEscolha = 10;
+            }
+            else if(teclas[2]){
+                if(escolha < 3){
+                    escolha++;
+                }
+                timerTrocarEscolha = 10;
+            }
+        }
+
+        rafa.regiaoXdaFolha = rafa.coluna_atual*rafa.larguraSprite;
+        rafa.regiaoYdaFolha = rafa.linha_atual*rafa.alturaSprite;
+
+        larissa.regiaoXdaFolha = larissa.coluna_atual*larissa.larguraSprite;
+        larissa.regiaoYdaFolha = larissa.linha_atual*larissa.alturaSprite;
+
+        al_clear_to_color(al_map_rgb(0,0,0));
+        al_draw_bitmap(fundo,0,0,0);
+        al_draw_bitmap_region(rafa.spritesheet,rafa.regiaoXdaFolha,rafa.regiaoYdaFolha,
+                              rafa.larguraSprite,rafa.alturaSprite,
+                              rafa.pos_x,rafa.pos_y,rafa.inverte_sprite);
+        al_draw_bitmap_region(larissa.spritesheet,larissa.regiaoXdaFolha,larissa.regiaoYdaFolha,
+                              larissa.larguraSprite,larissa.alturaSprite,
+                              larissa.pos_x,larissa.pos_y,larissa.inverte_sprite);
+        al_draw_bitmap(frente,0,0,0);
+        if(dialogBoxAtiva){
+            if(opacidadedb<255){
+                opacidadedb+=5;
+            }
+            al_draw_tinted_bitmap(dialogBox,al_map_rgb(opacidadedb,opacidadedb,opacidadedb),0,500,0);
+        }
+        if(!inicio){
+            if(rafa.pos_x > 100){
+                rafa.andando = true;
+                rafa.pos_x-=rafa.velocidade;
+            }
+            else if(rafa.andando){
+                rafa.andando = false;
+                dialogBoxAtiva = true;
+            }
+            if(opacidadedb>= 255)
+            {
+                timerDialogo = timerDialogo>0?timerDialogo-1:0;
+                if(dialogoAtual != 8 || timerDialogo > 0){
+                    al_draw_text(pixelFont,al_map_rgb(200,200,200),50,520,ALLEGRO_ALIGN_LEFT,dialogos[dialogoAtual]);
+                }
+
+                if(!pausarDialogo){
+                    if(tempoPularDialogo>0){
+                        tempoPularDialogo--;
+                    }
+                    if(tempoPularDialogo <= 0){
+                        if(dialogoAtual != 8 && dialogoAtual != 13){
+                            al_draw_text(pixelFontPequena,al_map_rgb(200,200,200),1000,580,ALLEGRO_ALIGN_CENTER,"pressione espaço para pular o dialogo");
+                        }
+                        if(teclas[0]){
+                            tempoPularDialogo = 60;
+                            if(dialogoAtual != 8 && dialogoAtual != 13){
+                                dialogoAtual++;
+                            }
+                        }
+                        if(dialogoAtual == 13 && tempoPularDialogo <= 0){
+                            fim = true;
+                            acao = 13;
+                        }
+                    }
+                    if(dialogoAtual == 8){
+                        timerDialogo = 240;
+                        timerEscolha = 30;
+                        pausarDialogo = true;
+                    }
+                }
+                else if(dialogoAtual == 8){
+                    if(timerDialogo <= 0){
+                        if(!escolhaFeita){
+                            if(detalheEscolhaOpacidade <= 50){
+                                aumentaOpacidadeEscolha = true;
+                            }
+                            else if(detalheEscolhaOpacidade >= 150){
+                                aumentaOpacidadeEscolha = false;
+                            }
+                            if(aumentaOpacidadeEscolha){
+                                detalheEscolhaOpacidade++;
+                            }
+                            else{
+                                detalheEscolhaOpacidade--;
+                            }
+                            al_draw_text(pixelFont,al_map_rgb(200,200,200),50,520,ALLEGRO_ALIGN_LEFT,dialogos[9]);
+                            al_draw_text(pixelFont,al_map_rgb(200,200,200),50,540,ALLEGRO_ALIGN_LEFT,dialogos[10]);
+                            al_draw_text(pixelFont,al_map_rgb(200,200,200),50,560,ALLEGRO_ALIGN_LEFT,dialogos[11]);
+                            switch(escolha){
+                                case 1:
+                                    al_draw_tinted_bitmap(detalheEscolhaDialogo,al_map_rgba(0,0,0,detalheEscolhaOpacidade),0,516,0);
+                                break;
+                                case 2:
+                                    al_draw_tinted_bitmap(detalheEscolhaDialogo,al_map_rgba(0,0,0,detalheEscolhaOpacidade),0,536,0);
+                                break;
+                                case 3:
+                                    al_draw_tinted_bitmap(detalheEscolhaDialogo,al_map_rgba(0,0,0,detalheEscolhaOpacidade),0,556,0);
+                                break;
+                            }
+                            if(timerEscolha<=0){
+                                if(teclas[0]){
+                                    escolhaFeita = true;
+                                    eventos[2] = escolha;
+                                    eventosTerminados = 3;
+                                }
+                            }
+                            else{
+                                timerEscolha--;
+                            }
+                        }
+                        else{
+                            pausarDialogo = false;
+                            dialogoAtual = 12;
+                            tempoPularDialogo = 60;
+                            switch(escolha){
+                                case 1:
+                                    strcpy(dialogos[12], "Larissa: Pode deixar, volta logo tá");
+                                    strcpy(dialogos[13], "Rafael: beleza, vou tentar voltar inteiro");
+                                break;
+                                case 2:
+                                    strcpy(dialogos[12], "Larissa: vou, acho que é mais seguro");
+                                    strcpy(dialogos[13], "Rafael: beleza, volto logo então");
+                                break;
+                                case 3:
+                                    strcpy(dialogos[12], "Larissa: mano, some daqui, me deixa em paz");
+                                    strcpy(dialogos[13], "Rafael: ...");
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if(inicio){
+            if(fadeOpacidade>0){
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade -= 5;
+            }
+            else{
+                inicio = false;
+                fadeOpacidade = 0;
+            }
+        }
+        else if(fim){
+            if(fadeOpacidade<255){
+                if(fadeOpacidade > 255){
+                    fadeOpacidade = 255;
+                }
+                al_draw_tinted_bitmap(fade,al_map_rgba(255,255,255,fadeOpacidade),0,0,0);
+                fadeOpacidade += 5;
+            }
+            else{
+                trocarCena = true;
+                fim = false;
+            }
+        }
+        if(trocarCena){
+            al_draw_bitmap(fade,0,0,0);
+        }
+        al_flip_display();
+        if(obterTempo()< 1.0/FPS){
+            al_rest((1.0/FPS)-obterTempo());
+        }
+    }
+    al_destroy_bitmap(fundo);
+    al_destroy_bitmap(frente);
+    al_destroy_bitmap(dialogBox);
+    al_destroy_bitmap(fade);
+    al_destroy_bitmap(detalheEscolhaDialogo);
+    acaoAnterior = 19;
+    return 1;
+}
 int Varanda(int veioDeOnde){
     ALLEGRO_BITMAP *fundo = NULL;
     ALLEGRO_BITMAP *frente1 = NULL;
@@ -1520,6 +1834,9 @@ int Varanda(int veioDeOnde){
             if(teclas[2]){
                 if(eventos[0] == 0){
                     acao = 18;
+                }
+                else if(eventos[1] != 0){
+                    acao = 19;
                 }
                 else{
                     acao = 13;
@@ -2502,11 +2819,23 @@ int CorredorSegundoAndar(int veioDeOnde){
         }
         else if(rafa.pos_x>1840 && rafa.pos_x<1972){
             if(teclas[2]){
-                if(!fim){
+                if(eventos[3]!= 0){
+                    if(!fim){
                     al_play_sample(abrirPorta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    }
+                    fim = true;
+                    acao = 12;
                 }
-                fim = true;
-                acao = 12;
+                else{
+                    if(timerMacaneta<=0){
+                    al_play_sample(macaneta,1,0.5,1,ALLEGRO_PLAYMODE_ONCE,0);
+                    timerMacaneta = 120;
+                    }
+                    if(timerFala <= 0){
+                        timerFala = 240;
+                        strcpy(falaRafa, "trancado...");
+                    }
+                }
             }
             emUmaEntradaS = true;
             strcpy(salaDaPortaS, "Banheiro");
@@ -2928,7 +3257,8 @@ int Biblioteca(int veioDeOnde){
         yukaNoComodo = true;
         yukaGlobal.inverte_sprite = 0;
         yukaGlobal.pos_x = 1000;
-        timerYukaEntrar = 700;
+        timerFugaYuka = 700;
+        timerYukaEntrar = 0;
         rafa.pos_x = 650;
         rafa.inverte_sprite = RIGHT;
     }
@@ -4097,9 +4427,17 @@ int Hall(int veioDeOnde){
             if(opacidadeEmUmaEntradaS<255){
                 opacidadeEmUmaEntradaS+=5;
             }
+            if(opacidadeEmUmaEntradaS>255){
+                opacidadeEmUmaEntradaS = 255;
+            }
             al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
                     rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
 
+        }
+        else if(opacidadeEmUmaEntradaS > 100){
+            opacidadeEmUmaEntradaS-=5;
+            al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS,opacidadeEmUmaEntradaS),
+                         rafa.pos_x + 50, rafa.pos_y -50,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaS);
         }
         else{
             opacidadeEmUmaEntradaS = 0;
@@ -4108,6 +4446,14 @@ int Hall(int veioDeOnde){
             if(opacidadeEmUmaEntradaI<255){
                 opacidadeEmUmaEntradaI+=5;
             }
+            if(opacidadeEmUmaEntradaI>255){
+                opacidadeEmUmaEntradaI = 255;
+            }
+            al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaI,opacidadeEmUmaEntradaI,opacidadeEmUmaEntradaI),
+                         rafa.pos_x + 50, rafa.pos_y -40,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaI);
+        }
+        else if(opacidadeEmUmaEntradaI > 100){
+            opacidadeEmUmaEntradaI-=5;
             al_draw_textf(pixelFontPequena,al_map_rgb(opacidadeEmUmaEntradaI,opacidadeEmUmaEntradaI,opacidadeEmUmaEntradaI),
                          rafa.pos_x + 50, rafa.pos_y -40,ALLEGRO_ALIGN_CENTER, "%s", salaDaPortaI);
         }
@@ -4200,19 +4546,19 @@ int HallAnim(){
     int dialogoAtual = 0;
     char dialogos[13][100];
     int tempoPularDialogo = 0;
-    strcpy(dialogos[0], "Ilan: Ae Rafa, que mansão mais estranha, tu não acha ?");
-    strcpy(dialogos[1], "Rafael: Pois é, tem algo de errado, tá muito frio aqui dentro!");
-    strcpy(dialogos[2], "Ilan: Sim, ae que que tu acha da gente se separar pra procurarmos a Larissa ?");
-    strcpy(dialogos[3], "Rafael: Sei não em, é ai que a galera morre nos filmes.");
-    strcpy(dialogos[4], "Ilan: Ta é doido Rafa, tem nada aqui não ma.");
-    strcpy(dialogos[5], "Rafael: A Larissa tava falando que tinha uns negócios estranhos aqui.");
-    strcpy(dialogos[6], "Ilan: Me deixa de bobagem pô, você sabe que fantasmas não existem.");
-    strcpy(dialogos[7], "Rafael: Mano impressão minha ou a porta trancou ?");
-    strcpy(dialogos[8], "Ilan: Eu ouvi também, vê ai macho.");
-    strcpy(dialogos[9], "Rafael: Trancada...");
-    strcpy(dialogos[10], "Rafael: Que foi isso ?");
-    strcpy(dialogos[11], "Ilan: Alguma coisa caiu no outro cômodo, vou lá dar uma olhada.");
-    strcpy(dialogos[12], "Rafael: Toma cuidado Ilan e vê se não demora.");
+    strcpy(dialogos[0], "Ilan: ae Rafa, que mansão mais estranha, tu não acha ?");
+    strcpy(dialogos[1], "Rafael: pois é, tem algo de errado, tá muito frio aqui dentro!");
+    strcpy(dialogos[2], "Ilan: sim, ae que que tu acha da gente se separar pra procurarmos a Larissa ?");
+    strcpy(dialogos[3], "Rafael: sei não em, é ai que a galera morre nos filmes");
+    strcpy(dialogos[4], "Ilan: ta é doido Rafa, tem nada aqui não ma");
+    strcpy(dialogos[5], "Rafael: a Larissa tava falando que tinha uns negócios estranhos aqui");
+    strcpy(dialogos[6], "Ilan: me deixa de bobagem pô, você sabe que fantasmas não existem");
+    strcpy(dialogos[7], "Rafael: mano impressão minha ou a porta trancou ?");
+    strcpy(dialogos[8], "Ilan: eu ouvi também, vê ai macho");
+    strcpy(dialogos[9], "Rafael: trancada...");
+    strcpy(dialogos[10], "Rafael: que foi isso ?");
+    strcpy(dialogos[11], "Ilan: alguma coisa caiu no outro cômodo, vou lá dar uma olhada");
+    strcpy(dialogos[12], "Rafael: toma cuidado Ilan e vê se não demora");
     int ato = 0;
     int opacidadedb = 0;
     int fadeOpacidade = 255;
@@ -5085,7 +5431,7 @@ int movimentoPadraoComEscondido(struct personagem *rafa,int comodoLimMin,int com
 }
 int temporizaDistancia(int pos1, int pos2){
     int distancia = pos1-pos2;
-    return distancia>0?(distancia/4) + timerFugaYuka:((-(distancia))/4)+timerFugaYuka;
+    return distancia>0?(distancia/4) + timerYukaEntrar:((-(distancia))/4)+timerYukaEntrar;
 }
 
 
