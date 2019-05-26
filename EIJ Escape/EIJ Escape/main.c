@@ -282,18 +282,14 @@ int main(){
         if(eventosTerminados>=2 && (acao == 2 || acao == 5 || acao == 11)){
             srand(time(NULL));
             if(eventosTerminados == 2){
-                spawnYukaValor = rand() % 6;
-                spawnYukaTentativa = rand() % 6;
-            }
-            else if(eventosTerminados == 3){
                 spawnYukaValor = rand() % 5;
                 spawnYukaTentativa = rand() % 5;
             }
-            else if(eventosTerminados == 4){
+            else if(eventosTerminados == 3){
                 spawnYukaValor = rand() % 4;
                 spawnYukaTentativa = rand() % 4;
             }
-            else if(eventosTerminados == 5){
+            else if(eventosTerminados == 4){
                 spawnYukaValor = rand() % 3;
                 spawnYukaTentativa = rand() % 3;
             }
@@ -2064,7 +2060,7 @@ int QuartoHospedes(int veioDeOnde){
     struct personagem rafa;
     struct personagem larissa;
     iniciaRafa(&rafa);
-    if(eventos[0] != 0){
+    if(eventos[0] != 0 && eventos[3] == 0){
         iniciaLarissa(&larissa);
         larissa.pos_x = 50;
         larissa.inverte_sprite = RIGHT;
@@ -2092,6 +2088,14 @@ int QuartoHospedes(int veioDeOnde){
     }
     while(!trocarCena && !sair){
         if(timerFugaYuka >= 0)timerFugaYuka--;
+        else if(timerFugaYuka <= 0 && yukaPerseguindo){
+            yukaPerseguindo = false;
+            timerYukaEntrar = 0;
+            if(yukaBackgroundSom){
+                al_stop_sample(&idYukaBackground);
+                yukaBackgroundSom = false;
+            }
+        }
         iniciaTimer();
         if(timerMacaneta>0){
             timerMacaneta--;
@@ -2101,7 +2105,7 @@ int QuartoHospedes(int veioDeOnde){
         filaPadrao(teclas);
         if(!fim)
             movimentoPadrao(&rafa,-20,1120,teclas);
-        if(eventos[0] != 0){
+        if(eventos[0] != 0 && eventos[3] == 0){
             if(larissa.andando || larissa.correndo){
                 larissa.linha_atual = larissa.andando?1:2;
                 larissa.velocidade = larissa.andando?3:6;
@@ -2152,7 +2156,7 @@ int QuartoHospedes(int veioDeOnde){
         rafa.regiaoXdaFolha = rafa.coluna_atual * rafa.larguraSprite;
         rafa.regiaoYdaFolha = rafa.linha_atual * rafa.alturaSprite;
         al_draw_bitmap(fundo,0,0,0);
-        if(eventos[0] != 0){
+        if(eventos[0] != 0 && eventos[3] == 0){
             al_draw_bitmap_region(larissa.spritesheet,larissa.regiaoXdaFolha,larissa.regiaoYdaFolha,
                 larissa.larguraSprite,larissa.alturaSprite,
                 larissa.pos_x,larissa.pos_y,larissa.inverte_sprite);
@@ -6593,6 +6597,3 @@ int temporizaDistancia(int pos1, int pos2){
     int distancia = pos1-pos2;
     return distancia>0?(distancia/4) + timerYukaEntrar:((-(distancia))/4)+timerYukaEntrar;
 }
-
-
-
