@@ -265,6 +265,7 @@ int main(){
             yukaPerseguindo = false;
             chuvaAlta = false;
             chuvaBaixa = false;
+            jogoFinalizado = false;
             eventos[0] = 0;
             eventos[1] = 0;
             eventos[2] = 0;
